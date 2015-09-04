@@ -7,7 +7,7 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
         params.dataset.localdir = '';
         CACHE_FILE = 0;
     elseif isfield(params.dataset,'localdir') ...
-          && length(params.dataset.localdir)>0
+          && ~isempty(params.dataset.localdir)
         CACHE_FILE = 1;
     else
         params.dataset.localdir = '';
@@ -31,12 +31,15 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
     end
 
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
-    cachename = sprintf('%s/%s-%s-%s-%d-.3f.mat',...
+    cachename = sprintf('%s/%s-%s-%s-%d-%.3f.mat',...
                      basedir, params.class,...
                      type, params.stream_name, params.stream_max, scale_factor);
 
     if CACHE_FILE && fileexists(cachename)
         load_ex(cachename);
+        if ~isfield(integrals, 'scale_factor')
+            [integrals.scale_factor] = deal(1);
+        end
         fprintf(1,'get_codebook_integrals: length of stream=%05d\n', length(features));
         return;
     end
@@ -52,6 +55,9 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
         integral = integrals(fi);
         if CACHE_FILE && fileexists(imgcachename)
             load_ex(imgcachename);
+            if ~isfield(integral, 'scale_factor')
+                integral.scale_factor = 1;
+            end
             integrals(fi) = integral;
             continue;
         end

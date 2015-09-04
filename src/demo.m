@@ -1,4 +1,4 @@
-function demo(stream_size, train)
+function demo(stream_size, scale_factor, train)
     close all;
     dbstop if error;
 %    dbstop in demo at 252;
@@ -13,7 +13,11 @@ function demo(stream_size, train)
     params.class = 'bicycle';
     params.parts = 4;
     params.clusters = 1000;
-    params.integrals_scale_factor = 0.75; % save only 3 of 4 entries
+    if exist('scale_factor', 'var')
+         params.integrals_scale_factor = scale_factor; % save only 3 of 4 entries
+    else
+        params.integrals_scale_factor = 0.75; % save only 3 of 4 entries
+    end
     if exist('stream_size', 'var')
         params.stream_max = stream_size;
     else
@@ -210,17 +214,21 @@ function svm_models = getSVMInteractive(params, cluster_model)
         
         [~, curid, ~] = fileparts(selected_img.filename);
         
-        target_dir = [params.dataset.localdir filesep 'queries' filesep curid];
+        target_dir = [params.dataset.localdir filesep 'queries'...
+            filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
+            filesep curid ];
         if exist(target_dir, 'dir')
             rmdir(target_dir, 's');
         end
         mkdir(target_dir);
+        pos = round(getPosition(h));
+        pos(3:4) = pos(3:4) + pos(1:2) - 1;
         croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
         imwrite(croppedI, [target_dir filesep 'query.jpg']);
 
         %Create an exemplar stream (list of exemplars)
         params.feature_type = 'full-masked';
-        if true
+        if false
             stream_params.stream_set_name = params.stream_name;
             stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
             stream_params.must_have_seg = 0;
@@ -247,8 +255,6 @@ function svm_models = getSVMInteractive(params, cluster_model)
         neg_codebooks = horzcat(neg_codebooks.I);
 
         setStatus('Get features from selected part...');
-        pos = round(getPosition(h));
-        pos(3:4) = pos(3:4) + pos(1:2) - 1;
         query_file.I = selected_img.I;
         query_file.bbox = pos;
         query_file.cls = 'unknown';
@@ -289,8 +295,8 @@ end
 function results = searchDatabase(params, database, svm_models, fit_params, pos)
     sizes = cellfun(@(I) size(I), {database.I}, 'UniformOutput', false);
     sizes = cell2mat(vertcat(sizes(:)));
-    max_w = max(sizes(:, 3));
-    max_h = max(sizes(:, 4));
+    max_w = max(sizes(:, 3)) / params.integrals_scale_factor;
+    max_h = max(sizes(:, 4)) / params.integrals_scale_factor;
     
     roi_w = pos(3) - pos(1) + 1;
     roi_h = pos(4) - pos(2) + 1;
@@ -300,7 +306,9 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     for mi=1:length(svm_models)
         model = svm_models(mi);
 
-        target_dir = [params.dataset.localdir filesep 'queries' filesep model.curid];
+        target_dir = [params.dataset.localdir filesep 'queries'...
+            filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
+            filesep model.curid];
 
         scores = model.classify(params, model, codebooks);
         scores = adjust_scores(params, fit_params, scores);

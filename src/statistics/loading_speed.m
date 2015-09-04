@@ -6,15 +6,22 @@ function [ results ] = loading_speed(params)
     results.num_images = params.stream_max;
     
     % serialized
-    results.serialized = serialized(basedir, params.stream_max);
+    results.serialized = serialized(params, basedir, params.stream_max);
     
     % unserialized
-    results.raw = raw(basedir, params.stream_max);
+    results.raw = raw(params, basedir, params.stream_max);
 end
 
-function result = serialized(basedir, num_images)
+function result = serialized(params, basedir, num_images)
     result = struct;
-    fname = sprintf('%s/bicycle-full-train-%d.mat', basedir, num_images);
+    fname = sprintf('%s/%s-%s-%s-%d-%.3f.mat', basedir,...
+        params.class, params.feature_type, params.stream_name, num_images, ...
+        params.integrals_scale_factor);
+    
+    if ~exist(fname, 'file')
+        return
+    end
+    
     result.filename = fname;
     stat = dir(fname);
     result.fsize = stat.bytes;
@@ -29,9 +36,16 @@ function result = serialized(basedir, num_images)
     result.var_size = stat.bytes;
 end
 
-function result = raw(basedir, num_images)
+function result = raw(params, basedir, num_images)
     result = struct;
-    fname = sprintf('%s/bicycle-full-train-%d_unser.mat', basedir, num_images);
+    fname = sprintf('%s/%s-%s-%s-%d-%.3f_unser.mat', basedir,...
+        params.class, params.feature_type, params.stream_name, num_images, ...
+        params.integrals_scale_factor);
+    
+    if ~exist(fname, 'file')
+        return
+    end
+    
     result.filename = fname;
     stat = dir(fname);
     result.fsize = stat.bytes;
