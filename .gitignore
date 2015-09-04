@@ -1,0 +1,9 @@
+*.swp
+*.swo
+*~
+/data
+/DBs
+masato
+*.avi
+*.jpg
+*.mat

@@ -1,0 +1,3 @@
+addpath('src');
+
+demo;
