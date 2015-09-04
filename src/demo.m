@@ -143,71 +143,114 @@ end
 function svm_models = getSVMInteractive(params, cluster_model)
     startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
     
-    f = figure('Position', [100, 100, 1024+40, 768 + 100], 'Resize', 'off');
-    axis image;
-    ax = axes('Units', 'pixels', 'Position', [20, 80, 1024, 768]);
-    
+    if usejava('desktop')
+        f = figure('Position', [100, 100, 1024+40, 768 + 100], 'Resize', 'off');
+        axis image;
+        ax = axes('Units', 'pixels', 'Position', [20, 80, 1024, 768]);
+    end
+
     selected_img = select_img();
-    img = uicontrol('Style', 'pushbutton',...
-        'String', 'Select Image',...
-        'Position', [20 20 100 20],...
-        'UserData', selected_img,...
-        'Callback', @select_img);
     
-    btn = uicontrol('Style', 'pushbutton',...
-        'String', 'Search',...
-        'Position', [130 20 60 20],...
-        'Enable', 'off',...
-        'Callback', @process);
-    
-    label = uicontrol('Style','text',...d
-                'String','Select exemplar',...
-                'HorizontalAlignment','left',...
-                'Position',[20 40 1000 30]);
     if strcmp(selected_img.filename, '2008_000615.jpg')
         rec = PASreadrecord('DBs/Pascal/VOC2011/Annotations/2008_000615.xml');
         initbb = rec.objects(2).bbox;
-        h = imrect(ax, [initbb(1:2), initbb(3:4) - initbb(1:2) + 1]);
+        pos = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
     else
-        h = imrect(ax);
+        pos = [];
     end
-    addNewPositionCallback(h, @(pos) set(label, 'String', sprintf('Selected: %s %4.0f,%4.0f,%4.0f,%4.0f', img.UserData.filename, pos(1), pos(2), pos(3), pos(4))));
-    fcn = makeConstrainToRectFcn('imrect',get(gca,'XLim'),get(gca,'YLim'));
-    setPositionConstraintFcn(h,fcn);
     
-    pos = round(getPosition(h));
-    setStatus(sprintf('Selected: %s %d,%d,%d,%d', img.UserData.filename, pos(1), pos(2), pos(3), pos(4)));
-    btn.Enable = 'on';    
+    if usejava('desktop') 
+        img = uicontrol('Style', 'pushbutton',...
+            'String', 'Select Image',...
+            'Position', [20 20 100 20],...
+            'UserData', selected_img,...
+            'Callback', @select_img);
+
+        btn = uicontrol('Style', 'pushbutton',...
+            'String', 'Search',...
+            'Position', [130 20 60 20],...
+            'Enable', 'off',...
+            'Callback', @process);
+
+        label = uicontrol('Style','text',...d
+                    'String','Select exemplar',...
+                    'HorizontalAlignment','left',...
+                    'Position',[20 40 1000 30]);
+                
+    
+        if ~isempty(pos)
+            h = imrect(ax, pos);
+        else
+            h = imrect(ax);
+        end
+        addNewPositionCallback(h, @(pos) set(label, 'String', sprintf('Selected: %s %4.0f,%4.0f,%4.0f,%4.0f', img.UserData.filename, pos(1), pos(2), pos(3), pos(4))));
+        fcn = makeConstrainToRectFcn('imrect',get(gca,'XLim'),get(gca,'YLim'));
+        setPositionConstraintFcn(h,fcn);
+
+        pos = round(getPosition(h));
+        btn.Enable = 'on';    
+        selected_img = img.UserData;
+    end
+    
+    setStatus(sprintf('Selected: %s %d,%d,%d,%d', selected_img.filename, pos(1), pos(2), pos(3), pos(4)));
+    
+    % run directly if in cli mode
+    if ~usejava('desktop')
+        process([], []);
+    end
     
     function setStatus(txt)
-        selected_img = img.UserData;
+        if usejava('desktop')
+            selected_img = img.UserData;
+        end
+        
         sec = toc(selected_img.total_time);
         txt = sprintf('%s (%f sec)', txt, sec);
-        set(label, 'String', txt);
         fprintf('[*] %s\n', txt);
-        drawnow();
+        
+        if usejava('desktop')
+            set(label, 'String', txt);
+            drawnow();
+        end
     end
 
     function selected_img = select_img(source, cbdata)
+        if ~usejava('desktop')
+            [~, fname, ext] = fileparts(startpath);
+            selected_img.filename = [fname ext];
+            selected_img.I = imread(startpath);
+            selected_img.total_time = tic;
+            return;
+        end
+        
         if exist('source', 'var')
             selected_img = source.UserData;
         end
+        
         [selected_img.filename, pathname] = uigetfile('*.jpg;*.png;*.gif;*.tif;*.bmp','Select the image which contains the exemplar', startpath);
         query_filename = [pathname filesep selected_img.filename];
         selected_img.I = imread(query_filename);
         selected_img.total_time = tic;
         imshow(selected_img.I, 'Parent', ax);
         set(gca,'xtick',[],'ytick',[]);
+        
         if exist('source', 'var')
             source.UserData = selected_img;
         end
+        
         shg;
     end
             
     function process(source, cbdata)
-        selected_img = img.UserData;
+        if usejava('desktop')
+            selected_img = img.UserData;
+        end
+        
         selected_img.total_time = tic;
-        img.UserData = selected_img;
+        
+        if usejava('desktop')
+            img.UserData = selected_img;
+        end
         
         old_params = params;
         params.stream_name = 'val';
@@ -221,8 +264,13 @@ function svm_models = getSVMInteractive(params, cluster_model)
             rmdir(target_dir, 's');
         end
         mkdir(target_dir);
-        pos = round(getPosition(h));
+        
+        if usejava('desktop')
+            pos = round(getPosition(h));
+        end
+        
         pos(3:4) = pos(3:4) + pos(1:2) - 1;
+        
         croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
         imwrite(croppedI, [target_dir filesep 'query.jpg']);
 

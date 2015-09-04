@@ -7,7 +7,7 @@ function [ codebooks ] = get_codebooks(params, features, cluster_model)
         params.dataset.localdir = '';
         CACHE_FILE = 0;
     elseif isfield(params.dataset,'localdir') ...
-          && length(params.dataset.localdir)>0
+          && ~isempty(params.dataset.localdir)
         CACHE_FILE = 1;
     else
         params.dataset.localdir = '';
