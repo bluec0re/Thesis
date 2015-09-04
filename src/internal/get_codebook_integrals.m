@@ -30,9 +30,10 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
         type = 'bboxed';
     end
 
-    cachename = sprintf('%s/%s-%s-%s-%d.mat',...
+    scale_factor = max([0, min([1, params.integrals_scale_factor])]);
+    cachename = sprintf('%s/%s-%s-%s-%d-.3f.mat',...
                      basedir, params.class,...
-                     type, params.stream_name, params.stream_max);
+                     type, params.stream_name, params.stream_max, scale_factor);
 
     if CACHE_FILE && fileexists(cachename)
         load_ex(cachename);
@@ -40,14 +41,13 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
         return;
     end
 
-    integrals = alloc_struct_array(length(features), 'I', 'curid');
+    integrals = alloc_struct_array(length(features), 'I', 'curid', 'scale_factor');
     for fi=1:length(features)
         feature = features(fi);
         
-        
-        imgcachename = sprintf('%s/%s-%s-%d-%s.mat',...
+        imgcachename = sprintf('%s/%s-%s-%d-%s-%.3f.mat',...
                                detaildir, params.class,...
-                               feature.curid, feature.objectid, type);
+                               feature.curid, feature.objectid, type, scale_factor);
 
         integral = integrals(fi);
         if CACHE_FILE && fileexists(imgcachename)
@@ -56,8 +56,27 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
             continue;
         end
         
-        integrals(fi).I = cluster_model.feature2codebookintegral(params, feature);
+        I = cluster_model.feature2codebookintegral(params, feature);
+        if scale_factor < 1 && scale_factor > 0
+            deleteEveryN = 1 / (1 - scale_factor);
+            fprintf(' Rescaling: %.3f, deleting every %d\n', scale_factor, deleteEveryN);
+            % maybe not best method, but works approx
+            % >> round(1:(1/(1-0.75)):10)
+            % 1     5     9
+            % >> round(1:(1/(1-0.5)):10)
+            % 1     3     5     7     9
+            % >> round(1:(1/(1-0.25)):10)
+            % 1     2     4     5     6     8     9
+            % >> round(1:(1/(1-2/3)):10)
+            % 1     4     7     10
+            deleteCols = round(1:deleteEveryN:size(I, 3));
+            deleteRows = round(1:deleteEveryN:size(I, 4));
+            I(:, :, deleteCols, :) = [];
+            I(:, :, :, deleteRows) = [];
+        end
+        integrals(fi).I = I;
         integrals(fi).curid = feature.curid;
+        integrals(fi).scale_factor = scale_factor;
         
         
         if CACHE_FILE

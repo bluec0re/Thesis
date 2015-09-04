@@ -13,6 +13,7 @@ function demo(stream_size, train)
     params.class = 'bicycle';
     params.parts = 4;
     params.clusters = 1000;
+    params.integrals_scale_factor = 0.75; % save only 3 of 4 entries
     if exist('stream_size', 'var')
         params.stream_max = stream_size;
     else

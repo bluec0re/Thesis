@@ -15,6 +15,12 @@ function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NU
     lastIdx = 1;
     for fi=1:length(database)
         filename = database(fi).curid;
+        if isfield(database(fi), 'scale_factor')
+            scale_factor = database(fi).scale_factor;
+        else
+            scale_factor = 1;
+        end
+        
         fprintf('-- [%4d/%04d] Calc codebooks for %s...', fi, length(database), filename);
         tmp = tic;
         s = size(database(fi).I);
@@ -24,6 +30,9 @@ function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NU
         imgWindowsBB = windows_bb(windows_bb(:, 1) < w & windows_bb(:, 2) < h, :);
         imgWindowsBB(:, 3) = min(imgWindowsBB(:, 3), w);
         imgWindowsBB(:, 4) = min(imgWindowsBB(:, 4), h);
+        
+        % adjust bounding boxes
+        imgWindowsBB = imgWindowsBB * scale_factor;
 
         % codebook x scales x amount
         codebooks3 = getCodebooksFromIntegral(codebooksImg, imgWindowsBB, NUM_PARTS);
@@ -48,7 +57,8 @@ function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NU
         end
 
         codebooks(lastIdx:lastIdx+size(codebooks2, 1)-1,:) = codebooks2;
-        bboxes(lastIdx:lastIdx+size(codebooks2, 1)-1,:) = imgWindowsBB(valid_codebooks,:);
+        % readjust bounding boxes
+        bboxes(lastIdx:lastIdx+size(codebooks2, 1)-1,:) = imgWindowsBB(valid_codebooks,:) / scale_factor;
         images(lastIdx:lastIdx+size(codebooks2, 1)-1) = ones([1 size(codebooks2, 1)]) * fi;
         lastIdx = lastIdx+size(codebooks2, 1);
         sec = toc(tmp);
