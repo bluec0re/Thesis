@@ -15,38 +15,17 @@ function demo(stream_size, scale_factor, codebook_type, train)
     addpath(genpath('vendors'));
     addpath(genpath('src/internal'));
 
-    dataset_directory = 'VOC2011';
-    data_directory = 'DBs/Pascal/';
-    results_directory = 'results';
-
-    params = struct;
-    params.class = 'bicycle';
-    params.parts = 4;
-    params.clusters = 1000;
+    params = get_default_configuration;
     if exist('scale_factor', 'var')
          params.integrals_scale_factor = scale_factor; % save only 3 of 4 entries
-    else
-        params.integrals_scale_factor = 0.75; % save only 3 of 4 entries
     end
     if exist('stream_size', 'var')
         params.stream_max = stream_size;
-    else
-        params.stream_max = 100;
     end
     if exist('codebook_type', 'var')
         params.codebook_type = codebook_type;
-    else
-        params.codebook_type = 'double';
     end
 
-    params.esvm_default_params = esvm_get_default_params;
-    params.esvm_default_params.detect_pyramid_padding = 0;
-    params.esvm_default_params.detect_add_flip = 0;
-
-
-    params.dataset = esvm_get_voc_dataset(dataset_directory,...
-                                          data_directory,...
-                                          results_directory);
     params = profile_start(params);
 
     if exist('train', 'var') && train
