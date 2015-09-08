@@ -1,4 +1,16 @@
 function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_PARTS )
+%GETCODEBOOKSFROMINTEGRAL Extract codebooks from a single integral image
+%
+%   Syntax:     codebooks = getCodebooksFromIntegral(params, integral_img, bboxes, num_parts)
+%
+%   Input:
+%       params - Configuration struct
+%       integral_img - SxNxWxH Matrix. S: scales, N: Codebook Size, W: Width, H: Height
+%       bboxes - Mx4 Matrix of bounding boxes to extract
+%       num_parts - (Even) number of segments to divide a single window into
+%
+%   Output:
+%       codebooks - N2xSxM Matrix. N2: N*num_parts
 
     profile_log(params);
     % even slower??

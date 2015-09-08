@@ -1,4 +1,16 @@
 function out = load_ex( varargin )
+%LOAD_EX Advanced load wrapper
+%   Prints status information and allows to load files serialized with hlp_deserialize
+%   Behaves exactly like matlabs load function
+%
+%   Syntax:     out = load_ex(filename, load_arg, ...)
+%
+%   Input:
+%       filename - File to load
+%       load_arg - Optional, variadic arguments for matlabs load function
+%
+%   Output:
+%       out - optional struct containing the loaded variables
 
     fprintf(1,'Loading %s...', varargin{1});
     tmp = tic;

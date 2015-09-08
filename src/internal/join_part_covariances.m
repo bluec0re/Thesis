@@ -1,4 +1,13 @@
 function neg_model = join_part_covariances(num_parts)
+%JOIN_PART_COVARIANCES Joins multiple small files into one matrix
+%
+%   Syntax:     neg_model = join_part_covariances(num_parts)
+%
+%   Input:
+%       num_parts - Number of files to join
+%
+%   Output:
+%       neg_model - the negative model for whitened HoGs
 
 filer = 'data/negative_models/covariance_wav.mat';
 

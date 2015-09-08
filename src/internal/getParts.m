@@ -1,6 +1,18 @@
 function [ xsteps, ysteps ] = getParts( minX, minY, maxX, maxY, NUM_PARTS)
-%GETPARTS Summary of this function goes here
-%   Detailed explanation goes here
+%GETPARTS Calculates the segments of a window
+%
+%   Syntax:     [ xsteps, ysteps ] = getParts( minX, minY, maxX, maxY, num_parts)
+%
+%   Input:
+%       minX - Lowest x value
+%       minY - Lowest y value
+%       maxX - Highest x value
+%       maxY - Highest y value
+%       num_parts - (Even) number of segments
+%
+%   Output:
+%       xsteps - X offsets inside the bounding box [[from; to], ...] (2xnum_parts Matrix)
+%       ysteps - Y offsets inside the bounding box [[from; to], ...] (2xnum_parts Matrix)
 
     if NUM_PARTS == 4
         stepX = (maxX - minX) / 2;

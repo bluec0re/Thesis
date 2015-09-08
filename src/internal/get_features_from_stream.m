@@ -1,4 +1,14 @@
 function features = get_features_from_stream( params, stream )
+%GET_FEATURES_FROM_STREAM Calculates HoG features from a given Pascal Stream
+%
+%   Syntax:     features = get_features_from_stream( params, stream )
+%
+%   Input:
+%       params - Configuration struct
+%       stream - A Pascal stream
+%
+%   Output:
+%       features - A feature struct array. Fields: curid, objectid, feature_type, I_size, X, M, scales, bbs, window2feature, area
 
     profile_log(params);
     if ~isfield(params, 'dataset')

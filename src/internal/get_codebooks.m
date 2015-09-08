@@ -1,4 +1,15 @@
 function codebooks = get_codebooks(params, features, cluster_model)
+%GET_CODEBOOKS Get integral codebooks from given features
+%
+%   Syntax:     codebooks = get_codebooks(params, features, cluster_model)
+%
+%   Input:
+%       params - Configuration struct
+%       features - A feature struct array. Required Fields: curid, X, bbs, window2feature
+%       cluster_model - A model from get_cluster
+%
+%   Output:
+%       codebooks - A struct array with fields: I, curid, size
 
     profile_log(params);
     % cache

@@ -1,4 +1,14 @@
 function features = whiten_features( params, features )
+%WHITEN_FEATURES Transforms HoG features into whitened HoGs
+%
+%   Syntax:     features = whiten_features( params, features )
+%
+%   Input:
+%       params - Configuration struct
+%       features - Feature struct array. Required Fields: X, M
+%
+%   Output:
+%       features - Whitened feature struct array. New Field: distVec
 
     profile_log(params);
     % cache

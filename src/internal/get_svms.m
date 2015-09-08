@@ -1,4 +1,15 @@
 function svm_models = get_svms( params, query_codebooks, neg_codebooks )
+%GET_SVMS Get trained exemplar svms from given codebooks
+%
+%   Syntax:     svm_models = get_svms( params, query_codebooks, neg_codebooks )
+%
+%   Input:
+%       params - Configuration struct
+%       query_codebooks - A codebook struct array. Required Fields: I, size, curid
+%       neg_codebooks - Codebook struct array (Fields: I) or NxM matrix. N: Num codebooks, M: Codebook size
+%
+%   Output:
+%       svm_models - Struct array of svm models. Fields: cb_size, codebook, curid, model
 
     profile_log(params);
     if ~isfield(params, 'dataset')

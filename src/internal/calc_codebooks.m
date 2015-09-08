@@ -1,5 +1,19 @@
 
 function [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, NUM_PARTS )
+%CALC_CODEBOOKS Extracts codebooks and bounding boxes from a given image database
+%
+%   Syntax:     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, num_parts )
+%
+%   Input:
+%       params - The configuration parameters, currently only required for profiling
+%       database - The image database as struct array with the fields I, curid and optionally scale_factor
+%       windows_bb - A Nx4 matrix of bounding boxes to to extract ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)
+%       num_parts - (Even) number of segments a window should be divided to
+%
+%   Output:
+%       bboxes - A Nx4 matrix of bounding boxes related to the extracted codebooks ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)
+%       codebooks - A Nx(M*num_parts) matrix of M dimensional codebooks
+%       images - A 1xN dimensional index vector for assigning codebooks to images
 
     profile_log(params);
     fprintf('Calculating codebooks...\n');
@@ -72,6 +86,20 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 end
 
 function [expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, NUM_PARTS)
+%EXPECTEDCODEBOOKS Tries to estimate the amount of codebooks extracted
+%   Internally used to preallocate the memory for speed
+%
+%   Syntax:     [expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, num_parts)
+%
+%   Input:
+%       database - The image database as struct array with the field I
+%       windows_bb - A Nx4 matrix of bounding boxes to to extract
+%       num_parts - (Even) number of segments a window should be divided to
+%
+%   Output:
+%       expectedCodebookCount - Estimated number of codebooks which will be extracted
+%       codebookSize - Size of the resulting codebooks (M*num_parts)
+
     % calc expected codebook count
     expectedCodebookCount = 0;
     codebookSize = 0;

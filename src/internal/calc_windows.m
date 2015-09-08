@@ -1,4 +1,17 @@
 function windows_bb = calc_windows( w, h, cbw, cbh, I )
+%CALC_WINDOWS Calculates the windows wich have to be extracted in a sliding window approach
+%
+%   Syntax:     windows_bb = calc_windows( w, h, cbw, cbh, I )
+%
+%   Input:
+%       w - Width of the image
+%       h - Height of the image
+%       cbw - Smallest width of a window
+%       cbh - Smallest height of a window
+%       I - Optional test image to produce a intagral.avi file for visualization
+%
+%   Output:
+%       windows_bb - Nx4 matrix of windows ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)
 
     if ~exist('cbw', 'var')
         cbw = 32;

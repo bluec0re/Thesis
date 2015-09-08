@@ -1,4 +1,14 @@
 function model = get_cluster( params, features )
+%GET_CLUSTER Clusters the given features with kmeans
+%
+%   Syntax:     model = get_cluster( params, features )
+%
+%   Input:
+%       params - The configuration struct used for caching and profiling
+%       features - The feature struct array (Required Fields: X)
+%
+%   Output:
+%       model - The computed model (Fields: centroids. Methods: feature2codebook(params, feature), feature2codebookintegral(params, feature))
 
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';
@@ -50,7 +60,19 @@ function model = get_cluster( params, features )
     model.feature2codebookintegral = @(p,f)(feature2codebookintegral(p,f,model));
 end
 
-function codebook = feature2codebook(params, feature, model)    
+function codebook = feature2codebook(params, feature, model)
+%FEATURE2CODEBOOK Calculates a codebook from a given feature struct
+%
+%   Syntax:     codebook = feature2codebook(params, feature, model)
+%
+%   Input:
+%       params - The configuration struct. Required fields: parts, codebook_type, profile (if profiling is required)
+%       feature - The feature struct. Required fields: X, window2feature, bbs
+%       model - The cluster model. Required fields: centroids
+%
+%   Output:
+%       codebook - A NxM matrix. N: params.parts * size(centroids, 1), M: length(window2feature)
+
     profile_log(params);
     codebook = zeros([size(model.centroids, 1) * params.parts length(feature.window2feature)]);
     if strcmp(params.codebook_type, 'single')
@@ -119,6 +141,17 @@ end
 
 
 function codebook = feature2codebookintegral(params, feature, model)
+%FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
+%
+%   Syntax:     codebook = feature2codebookintegral(params, feature, model)
+%
+%   Input:
+%       params - The configuration struct. Required fields: codebook_type, profile (if profiling is required)
+%       feature - The feature struct. Required fields: X, bbs, I_size, scales
+%       model - The cluster model. Required fields: centroids
+%
+%   Output:
+%       codebook - A SxNxWxH matrix. S: currently 1, N: size(centroids, 1), W: I_size(2), H: I_size(1)
 
     profile_log(params);
     % TODO: allow multiple scales

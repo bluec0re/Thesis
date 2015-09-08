@@ -1,4 +1,17 @@
 function features = filter_features(params, features)
+%FILTER_FEATURES Filters given features
+%   Removes features with too little texture or which are too close to the negative mode of whitened features
+%
+%   Syntax:     features = filter_features(params, features)
+%
+%   Input:
+%       params - The configuration struct. Used for profiling and caching
+%       features - The feature struct array (Fields: X, M, distVec, scales, bbs, window2feature)
+%
+%   Output:
+%       features - The filtered feature struct array with new logical vector deletedFeatures
+
+    profile_log(params);
     % cache
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';

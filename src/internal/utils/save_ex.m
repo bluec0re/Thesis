@@ -1,4 +1,13 @@
 function save_ex( varargin )
+%SAVE_EX Advanced wrapper around save
+%   Provides status information and to serialize the variables with hlp_serialize
+%
+%   Syntax:     save_ex(filename, save_args, ...)
+%
+%   Input:
+%       filename - The file to save to
+%       save_args - Variadic arguments for matlabs save function
+%
 
     filepath = varargin{1};
     [path, ~, ~] = fileparts(filepath);

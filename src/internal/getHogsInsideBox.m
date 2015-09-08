@@ -1,4 +1,22 @@
 function [X, W, M, offsets, uus, vvs, scales] = getHogsInsideBox(t, I, mask, params)
+%GETHOGSINSIDEBOX Restrict calculated HoGs to a given mask
+%
+%   Syntax:     [X, W, M, offsets, uus, vvs, scales] = getHogsInsideBox(t, I, mask, params)
+%
+%   Input:
+%       t - Feature pyramid
+%       I - Source image of features
+%       mask - logical mask to restrict features (same size as source image)
+%       params - Configuration parameters
+%
+%   Output:
+%       X - Features (Nx775)
+%       W - wavelet
+%       M - Gradient
+%       offsets - Patch offsets
+%       uus - Patch positions
+%       vvs - Patch positions
+%       scales - Patch scales
 
     X = [];
     W = [];

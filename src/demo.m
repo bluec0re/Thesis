@@ -1,4 +1,14 @@
 function demo(stream_size, scale_factor, codebook_type, train)
+%DEMO Demo implementation
+%
+%   Syntax: demo(stream_size, scale_factor, codebook_type, train)
+%
+%   Input:
+%       stream_size - Optional size of pascal objects to process. Default: 100
+%       scale_factor - Optional integral image scale factor. Default: 0.75, Valid: 0-1
+%       codebook_type - Optional datatype of codebooks. Default: 'double', Valid: 'double', 'single'
+%       train - Optional boolean to indicate the creation of a image database. Default: false
+
     close all;
     dbstop if error;
 %    dbstop in demo at 252;
@@ -71,6 +81,17 @@ function demo(stream_size, scale_factor, codebook_type, train)
 end
 
 function cluster_model = generateCluster(params, generate)
+%GENERATECLUSTER Generate a cluster model
+%
+%   Syntax:     cluster_model = generateCluster(params, generate)
+%
+%   Input:
+%       params - Configuration parameters
+%       generate - Boolean to indicate to generation or loading of cached model
+%
+%   Output:
+%       cluster_model - The model
+
     profile_log(params);
     params.feature_type = 'full';
     params.stream_name = 'trainval';
@@ -98,6 +119,17 @@ function cluster_model = generateCluster(params, generate)
 end
 
 function database = getImageDB(params, cluster_model)
+%GETIMAGEDB Generate or load the image database
+%
+%   Syntax:     database = getImageDB(params, cluster_model)
+%
+%   Input:
+%       params - Configuration parameters
+%       cluster_model - The model for codebook generation
+%
+%   Output:
+%       database - The database of integral images
+
     params.feature_type = 'full';
     params.stream_name = 'train';
 
@@ -115,11 +147,22 @@ function database = getImageDB(params, cluster_model)
     all_features = get_features_from_stream(params, trainval_stream_set);
     all_features = whiten_features(params, all_features);
     all_features = filter_features(params, all_features);
-    
+
     database = get_codebook_integrals(params, all_features, cluster_model);
 end
 
 function svm_models = getSVM(params, cluster_model)
+%GETSVM Train or load a exemplar SVM
+%
+%   Syntax:     svm_models = getSVM(params, cluster_model)
+%
+%   Input:
+%       parms - Configuration parameters
+%       cluster_model - The model to generate codebooks
+%
+%   Output:
+%       svm_models - SVM model struct
+
     params.stream_name = 'val';
 
     stream_params.stream_set_name = params.stream_name;
@@ -153,6 +196,17 @@ function svm_models = getSVM(params, cluster_model)
 end
 
 function searchInteractive(params, cluster_model)
+%SEARCHINTERACTIVE Do a complete interactive database search
+%   Asks the user for a image in the dataset image path.
+%   Allows to mark a ROI to search for
+%   Stores results in the results/queries subdirectories
+%
+%   Syntax:     searchInteractive(params, cluster_model)
+%
+%   Input:
+%       params - Configuration parameters
+%       cluster_model - The model to generate codebooks
+
     profile_log(params);
     %startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
     startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_001566.jpg');
@@ -363,6 +417,20 @@ function searchInteractive(params, cluster_model)
 end
 
 function results = searchDatabase(params, database, svm_models, fit_params, pos)
+%SEARCHDATABASE Search the image database with the given SVM models
+%   Stores results in the results/queries subdirectories
+%
+%   Syntax:     results = searchDatabase(params, database, svm_models, fit_params, roi)
+%
+%   Input:
+%       params - Configuration parameters
+%       database - The image database as struct array of integral codebook images
+%       svm_models - Struct array of svm models
+%       fit_params - Gaussian curve 2D Vectors to adjust the SVM scores [$\mu$, $\sigma$]
+%       roi - The region of interest [x_{min}, y_{min}, x_{max}, y_{max}]
+%
+%   Output:
+%       results - Cell array of results. Fields: curid, img, patch, score
     profile_log(params);
     sizes = cellfun(@(I) size(I), {database.I}, 'UniformOutput', false);
     sizes = cell2mat(vertcat(sizes(:)));
@@ -440,7 +508,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 %             I = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
 %             patchnrs(mimg(si)) = patchnrs(mimg(si)) + 1;
 %             imwrite(I, sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores(si), mimg(si), patchnrs(mimg(si))));
-%             
+%
 %             result(si).curid = model.curid;
 %             result(si).img = mimg(si);
 %             result(si).patch = patchnrs(mimg(si));
@@ -451,6 +519,19 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 end
 
 function fit_params = calibrate_fit(params, svm_models, query_file, cluster_model)
+%CALIBRATE_FIT Estimates the gaussian parameters for the given svm models
+%
+%   Syntax:     fit_params = calibrate_fit(params, svm_models, query_file, cluster_model)
+%
+%   Input:
+%       params - Configuration parameters
+%       svm_models - The SVM models
+%       query_file - A pascal stream containing the file used to train the SVM
+%       cluster_model - The model to generate the codebooks
+%
+%   Output:
+%       fit_params - Nx2 matrix of gaussian parameters. N: number of SVM models, Gaussian Parameters: [$\mu$, $\sigma$]
+
     profile_log(params);
     params.feature_type = 'full';
     features = get_features_from_stream(params, query_file);
@@ -471,6 +552,20 @@ function fit_params = calibrate_fit(params, svm_models, query_file, cluster_mode
 end
 
 function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, ground_truths)
+%CALIBRATE_RHO Tries to readjust the rho of the given SVM models to obtain better scores
+%
+%   Syntax:     rhos = calibrate_rho(params, svm_models, query_file, cluster_model, ground_truths)
+%
+%   Input:
+%       params - Configuration parameters
+%       svm_models - The SVM models
+%       query_file - A pascal stream containing the file used to train the SVM
+%       cluster_model - The model to generate the codebooks
+%       ground_truths - Nx4 Matrix of bounding boxes inside the query image (e.g. the ROI)
+%
+%   Output:
+%       rhos - Mx1 vector of new rhos. M: number of SVM models
+
     profile_log(params);
     params.feature_type = 'full';
     features = get_features_from_stream(params, query_file);
@@ -515,6 +610,20 @@ function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, gro
 end
 
 function [bbox, scores, idx] = reduce_matches(params, bbox, scores)
+%REDUCE_MATCHES Reduces the amount of detected matches with a non-max suppression
+%
+%   Syntax:     [bbox, scores, idx] = reduce_matches(params, bbox, scores)
+%
+%   Input:
+%       params - Configuration parameters
+%       bbox - Nx4 matrix of bounding boxes [x, y, w, h]
+%       scores - N dimensional vector of scores
+%
+%   Output:
+%       bbox - New bounding boxes
+%       scores - New scores
+%       idx - Mapping between input and output (index vector)
+
     profile_log(params);
     [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
 end
