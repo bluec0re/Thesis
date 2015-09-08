@@ -40,12 +40,14 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         codebooksImg = reshape(database(fi).I, s(2:end));
         w = size(codebooksImg, 2);
         h = size(codebooksImg, 3);
-        imgWindowsBB = windows_bb(windows_bb(:, 1) < w & windows_bb(:, 2) < h, :);
+        
+        % adjust bounding boxes
+        adjusted_windows_bb = windows_bb * scale_factor;
+        
+        imgWindowsBB = adjusted_windows_bb(adjusted_windows_bb(:, 1) < w & adjusted_windows_bb(:, 2) < h, :);
         imgWindowsBB(:, 3) = min(imgWindowsBB(:, 3), w);
         imgWindowsBB(:, 4) = min(imgWindowsBB(:, 4), h);
 
-        % adjust bounding boxes
-        imgWindowsBB = imgWindowsBB * scale_factor;
 
         % codebook x scales x amount
         codebooks3 = getCodebooksFromIntegral(params, codebooksImg, imgWindowsBB, NUM_PARTS);

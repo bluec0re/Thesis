@@ -413,8 +413,10 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     profile_log(params);
     sizes = cellfun(@(I) size(I), {database.I}, 'UniformOutput', false);
     sizes = cell2mat(vertcat(sizes(:)));
-    max_w = max(sizes(:, 3)) / params.integrals_scale_factor;
-    max_h = max(sizes(:, 4)) / params.integrals_scale_factor;
+    scale_factors = cellfun(@(I) size(I), {database.scale_factor}, 'UniformOutput', false);
+    scale_factors = cell2mat(vertcat(scale_factors(:)));
+    max_w = max(sizes(:, 3) / scale_factors);
+    max_h = max(sizes(:, 4) / scale_factors);
 
     roi_w = pos(3) - pos(1) + 1;
     roi_h = pos(4) - pos(2) + 1;
