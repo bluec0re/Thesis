@@ -1,12 +1,10 @@
-function [ model ] = get_cluster( params, features )
-%GET_CLUSTER Summary of this function goes here
-%   Detailed explanation goes here
+function model = get_cluster( params, features )
 
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';
         CACHE_FILE = 0;
     elseif isfield(params.dataset,'localdir') ...
-          && length(params.dataset.localdir)>0
+          && ~isempty(params.dataset.localdir)
         CACHE_FILE = 1;
     else
         params.dataset.localdir = '';
@@ -33,7 +31,7 @@ function [ model ] = get_cluster( params, features )
         fprintf(1,'get_cluster: length of stream=%05d\n', length(features));
         return;
     end
-    
+
 
     tmp = tic;
     % struct array -> concat of field X
@@ -42,18 +40,23 @@ function [ model ] = get_cluster( params, features )
     model.centroids = yael_kmeans(features, params.clusters)';
     sec = toc(tmp);
     fprintf('DONE in %f sec\n', sec);
-    
+
     if CACHE_FILE == 1
         save(cachename, '-struct', 'model');
     end
-    
+
     % prevent saving of function handles
     model.feature2codebook = @(p,f)(feature2codebook(p,f,model));
     model.feature2codebookintegral = @(p,f)(feature2codebookintegral(p,f,model));
 end
 
 function codebook = feature2codebook(params, feature, model)    
+    profile_log(params);
     codebook = zeros([size(model.centroids, 1) * params.parts length(feature.window2feature)]);
+    if strcmp(params.codebook_type, 'single')
+        codebook = single(codebook);
+    end
+
     if ~isempty(feature.X)
         tmp = tic;
         bbs = round(feature.bbs);
@@ -61,6 +64,7 @@ function codebook = feature2codebook(params, feature, model)
         splitY = ceil(sqrt(params.parts));
         fprintf('Searching clusters with %d features...', size(feature.X, 1));
         [assignments, distances] = knnsearch(model.centroids, single(feature.X));
+        emptyWindows = 0;
         for win=1:length(feature.window2feature)
             winFeatures = feature.window2feature{win};
             if sum(winFeatures) > 0
@@ -72,8 +76,8 @@ function codebook = feature2codebook(params, feature, model)
                 maxY = max(winBBs(:, 4));
                 [xsteps, ysteps] = getParts(minX, minY, maxX, maxY, params.parts);
                 for part=1:params.parts
-                    tmp2 = tic;
-                    fprintf('Filter features...');
+                    %tmp2 = tic;
+                    %fprintf('Filter features...');
                     partMinFeatures = winBBs(:,1) >= minX + xsteps(1, part);
                     partMinFeatures = partMinFeatures & (winBBs(:,1) <= minX + xsteps(2, part));
                     partMinFeatures = partMinFeatures & (winBBs(:,2) >= minY + ysteps(1, part));
@@ -85,37 +89,45 @@ function codebook = feature2codebook(params, feature, model)
                     partFeatures = partMinFeatures | partMaxFeatures;
 
                     %Z = Y(partFeatures, :);
-                    sec = toc(tmp2);
-                    fprintf('%f sec. ', sec);
-                    fprintf('Searching clusters with %d of %d features, window %d/%d %d/%d...', sum(partFeatures), sum(winFeatures), win, length(feature.window2feature), part, params.parts);
+                    %sec = toc(tmp2);
+                    %fprintf('%f sec. ', sec);
+                    %fprintf('Searching clusters with %d of %d features, window %d/%d %d/%d...', sum(partFeatures), sum(winFeatures), win, length(feature.window2feature), part, params.parts);
                     %[IDX, D] = knnsearch(model.centroids, Z);
                     IDX = assignments(partFeatures);
                     D = distances(partFeatures);
-                    
+
                     % create vector by incrementing value @ clusters
                     for i=1:size(IDX, 1)
                         codebook(IDX(i) + (part - 1) * size(model.centroids,1), win) = codebook(IDX(i) + (part - 1) * size(model.centroids,1), win) + 1 / D(i);
                     end
-                    sec = toc(tmp2);
-                    fprintf('DONE after %f sec\nFound %d unique clusters\n', sec, size(unique(IDX), 1));
+                    %sec = toc(tmp2);
+                    %fprintf('DONE after %f sec\nFound %d unique clusters\n', sec, size(unique(IDX), 1));
                 end
             else
-                warning('Empty window %d', win);
+                %warning('Empty window %d', win);
+                emptyWindows = emptyWindows + 1;
             end
         end
+        profile_log(params);
 
         sec = toc(tmp);
         fprintf('DONE in %f sec\n', sec);
+        fprintf('%d out of %d windows were empty!\n', emptyWindows, length(feature.window2feature));
     end
 end
 
 
-        
+
 function codebook = feature2codebookintegral(params, feature, model)
+
+    profile_log(params);
     % TODO: allow multiple scales
     params.NUM_SCALES = 1;
-    
+
     codebook = zeros([params.NUM_SCALES size(model.centroids, 1) feature.I_size(2) feature.I_size(1)]);
+    if strcmp(params.codebook_type, 'single')
+        codebook = single(codebook);
+    end
 
     if ~isempty(feature.X)
         bbs = round(feature.bbs);
@@ -135,11 +147,12 @@ function codebook = feature2codebookintegral(params, feature, model)
             for i=1:size(IDX, 1)
                 codebook(si, IDX(i), bbs(i, 3), bbs(i, 4)) = codebook(si, IDX(i), bbs(i, 3), bbs(i, 4)) + 1 / D(i);
             end
-            
+
             codebook = cumsum(codebook, 3);
             codebook = cumsum(codebook, 4);
             sec = toc(tmp);
             fprintf('DONE in %fs\n', sec);
         end
     end
+    profile_log(params);
 end

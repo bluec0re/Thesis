@@ -1,6 +1,4 @@
-function [ out ] = load_ex( varargin )
-%LOAD_EX Summary of this function goes here
-%   Detailed explanation goes here
+function out = load_ex( varargin )
 
     fprintf(1,'Loading %s...', varargin{1});
     tmp = tic;
@@ -31,4 +29,3 @@ function [ out ] = load_ex( varargin )
     sec = toc(tmp);
     fprintf('DONE in %f sec\n', sec);
 end
-

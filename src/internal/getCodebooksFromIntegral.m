@@ -1,7 +1,6 @@
-function [ codebooks ] = getCodebooksFromIntegral( integralImg, bboxes, NUM_PARTS )
-%GETCODEBOOKSFROMINTEGRAL Summary of this function goes here
-%   Detailed explanation goes here
+function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_PARTS )
 
+    profile_log(params);
     % even slower??
     % not multiscale ready
     %codebooks = fast(integralImg, bboxes, NUM_PARTS);
@@ -15,7 +14,7 @@ function [ codebooks ] = getCodebooksFromIntegral( integralImg, bboxes, NUM_PART
         integralImg = reshape(integralImg, iis);
     else
         scales = iis(1);
-        features = iis(2);        
+        features = iis(2);
     end
     codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
     %secs = zeros([1 size(bboxes, 1)]);
@@ -55,9 +54,10 @@ function [ codebooks ] = getCodebooksFromIntegral( integralImg, bboxes, NUM_PART
                codebook(:, si, part) = (a+d) - (b+c);
             end
         end
-        codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);        
+        codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);
     end
     %mean(secs)
+    profile_log(params);
 end
 
 % even slower??
@@ -68,7 +68,7 @@ function codebooks = fast(integralImg, bboxes, NUM_PARTS)
     bboxes(deleteBox, :) = [];
     bboxes(:, 3) = min(iis(2), bboxes(:, 3));
     bboxes(:, 4) = min(iis(3), bboxes(:, 4));
-    
+
     codebooks = zeros([NUM_PARTS, iis(1), size(bboxes, 1)]);
     for part=1:NUM_PARTS
         partbboxes = round(bboxesForPart(bboxes, part, NUM_PARTS));
@@ -76,15 +76,15 @@ function codebooks = fast(integralImg, bboxes, NUM_PARTS)
         b = sub2ind(iis(2:3), partbboxes(:, 3), partbboxes(:, 2));
         c = sub2ind(iis(2:3), partbboxes(:, 1), partbboxes(:, 4));
         d = sub2ind(iis(2:3), partbboxes(:, 3), partbboxes(:, 4));
-        
+
         a = integralImg(:, a);
         b = integralImg(:, b);
         c = integralImg(:, c);
         d = integralImg(:, d);
-        
+
         codebooks(part, :, :) = (a+d) - (b+c);
     end
-    
+
     codebooks = reshape(codebooks, [size(integralImg, 1) * NUM_PARTS, size(bboxes, 1)]);
 end
 
@@ -93,9 +93,9 @@ function newbboxes = bboxesForPart(bboxes, part, NUM_PARTS)
     yparts = ceil(sqrt(NUM_PARTS));
     xsteps = (bboxes(:, 3) - bboxes(:, 1) + 1) / xparts;
     ysteps = (bboxes(:, 4) - bboxes(:, 2) + 1) / yparts;
-    
+
     offsets = [xsteps * (mod(part - 1, xparts)), ysteps * floor((part - 1) / xparts)];
-    
+
     newbboxes = bboxes;
     newbboxes(:, 1:2) = newbboxes(:, 1:2) + offsets;
     newbboxes(:, 3:4) = [xsteps, ysteps] + newbboxes(:, 1:2) - 1;

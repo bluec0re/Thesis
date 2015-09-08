@@ -1,7 +1,6 @@
-function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
-%GET_CODEBOOKS Summary of this function goes here
-%   Detailed explanation goes here
+function integrals = get_codebook_integrals(params, features, cluster_model)
 
+    profile_log(params);
     % cache
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';
@@ -18,12 +17,12 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
     if CACHE_FILE == 1 && ~exist(basedir,'dir')
         mkdir(basedir);
     end
-    
+
     detaildir = sprintf('%s/images/', basedir);
     if CACHE_FILE == 1 && ~exist(detaildir,'dir')
         mkdir(detaildir);
     end
-    
+
     if isfield(params, 'feature_type')
         type = params.feature_type;
     else
@@ -34,6 +33,12 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
     cachename = sprintf('%s/%s-%s-%s-%d-%.3f.mat',...
                      basedir, params.class,...
                      type, params.stream_name, params.stream_max, scale_factor);
+
+    if strcmp(params.codebook_type, 'single')
+        cachename = sprintf('%s/%s-%s-%s-%d-%.3f-single.mat',...
+                         basedir, params.class,...
+                         type, params.stream_name, params.stream_max, scale_factor);
+    end
 
     if CACHE_FILE && fileexists(cachename)
         load_ex(cachename);
@@ -47,10 +52,16 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
     integrals = alloc_struct_array(length(features), 'I', 'curid', 'scale_factor');
     for fi=1:length(features)
         feature = features(fi);
-        
+
         imgcachename = sprintf('%s/%s-%s-%d-%s-%.3f.mat',...
                                detaildir, params.class,...
                                feature.curid, feature.objectid, type, scale_factor);
+
+        if strcmp(params.codebook_type, 'single')
+            imgcachename = sprintf('%s/%s-%s-%d-%s-%.3f-single.mat',...
+                               detaildir, params.class,...
+                               feature.curid, feature.objectid, type, scale_factor);
+        end
 
         integral = integrals(fi);
         if CACHE_FILE && fileexists(imgcachename)
@@ -61,7 +72,7 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
             integrals(fi) = integral;
             continue;
         end
-        
+
         I = cluster_model.feature2codebookintegral(params, feature);
         if scale_factor < 1 && scale_factor > 0
             deleteEveryN = 1 / (1 - scale_factor);
@@ -83,16 +94,16 @@ function [ integrals ] = get_codebook_integrals(params, features, cluster_model)
         integrals(fi).I = I;
         integrals(fi).curid = feature.curid;
         integrals(fi).scale_factor = scale_factor;
-        
-        
+
+
         if CACHE_FILE
             integral = integrals(fi);
             save_ex(imgcachename, 'integral');
         end
     end
-    
+    profile_log(params);
+
     if CACHE_FILE
         save_ex(cachename, 'integrals');
     end
 end
-

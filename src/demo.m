@@ -1,4 +1,4 @@
-function demo(stream_size, scale_factor, train)
+function demo(stream_size, scale_factor, codebook_type, train)
     close all;
     dbstop if error;
 %    dbstop in demo at 252;
@@ -23,6 +23,12 @@ function demo(stream_size, scale_factor, train)
     else
         params.stream_max = 100;
     end
+    if exist('codebook_type', 'var')
+        params.codebook_type = codebook_type;
+    else
+        params.codebook_type = 'double';
+    end
+
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;
     params.esvm_default_params.detect_add_flip = 0;
@@ -31,6 +37,7 @@ function demo(stream_size, scale_factor, train)
     params.dataset = esvm_get_voc_dataset(dataset_directory,...
                                           data_directory,...
                                           results_directory);
+    params = profile_start(params);
 
     if exist('train', 'var') && train
         cluster_model = generateCluster(params, true);
@@ -53,16 +60,21 @@ function demo(stream_size, scale_factor, train)
         fprintf('[*] Filtering negative features...\n');
         neg_features = whiten_features(params, neg_features);
         neg_features = filter_features(params, neg_features);
+
+        fprintf('[*]Getting negative codebooks...');
+        get_codebooks(params, neg_features, cluster_model);
+        profile_stop(params);
     else
         cluster_model = generateCluster(params, false);
-        getSVMInteractive(params, cluster_model);
+        searchInteractive(params, cluster_model);
     end
 end
 
 function cluster_model = generateCluster(params, generate)
+    profile_log(params);
     params.feature_type = 'full';
     params.stream_name = 'trainval';
-    
+
     if generate
         stream_params.stream_set_name = params.stream_name;
         stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
@@ -88,7 +100,7 @@ end
 function database = getImageDB(params, cluster_model)
     params.feature_type = 'full';
     params.stream_name = 'train';
-    
+
     stream_params.stream_set_name = params.stream_name;
     stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
     stream_params.must_have_seg = 0;
@@ -109,7 +121,7 @@ end
 
 function svm_models = getSVM(params, cluster_model)
     params.stream_name = 'val';
-    
+
     stream_params.stream_set_name = params.stream_name;
     stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
     stream_params.must_have_seg = 0;
@@ -136,13 +148,15 @@ function svm_models = getSVM(params, cluster_model)
 
     neg_codebooks = get_codebooks(params, neg_features, cluster_model);
     clear neg_features;
-        
+
     svm_models = get_svms(params, query_codebooks, neg_codebooks);
 end
 
-function svm_models = getSVMInteractive(params, cluster_model)
-    startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
-    
+function searchInteractive(params, cluster_model)
+    profile_log(params);
+    %startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
+    startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_001566.jpg');
+
     if usejava('desktop')
         f = figure('Position', [100, 100, 1024+40, 768 + 100], 'Resize', 'off');
         axis image;
@@ -150,16 +164,20 @@ function svm_models = getSVMInteractive(params, cluster_model)
     end
 
     selected_img = select_img();
-    
+
     if strcmp(selected_img.filename, '2008_000615.jpg')
         rec = PASreadrecord('DBs/Pascal/VOC2011/Annotations/2008_000615.xml');
         initbb = rec.objects(2).bbox;
         pos = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
+    elseif strcmp(selected_img.filename, '2008_001566.jpg')
+        rec = PASreadrecord('DBs/Pascal/VOC2011/Annotations/2008_001566.xml');
+        initbb = rec.objects(1).bbox;
+        pos = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
     else
         pos = [];
     end
-    
-    if usejava('desktop') 
+
+    if usejava('desktop')
         img = uicontrol('Style', 'pushbutton',...
             'String', 'Select Image',...
             'Position', [20 20 100 20],...
@@ -176,8 +194,8 @@ function svm_models = getSVMInteractive(params, cluster_model)
                     'String','Select exemplar',...
                     'HorizontalAlignment','left',...
                     'Position',[20 40 1000 30]);
-                
-    
+
+
         if ~isempty(pos)
             h = imrect(ax, pos);
         else
@@ -188,26 +206,26 @@ function svm_models = getSVMInteractive(params, cluster_model)
         setPositionConstraintFcn(h,fcn);
 
         pos = round(getPosition(h));
-        btn.Enable = 'on';    
+        btn.Enable = 'on';
         selected_img = img.UserData;
     end
-    
+
     setStatus(sprintf('Selected: %s %d,%d,%d,%d', selected_img.filename, pos(1), pos(2), pos(3), pos(4)));
-    
+
     % run directly if in cli mode
     if ~usejava('desktop')
         process([], []);
     end
-    
+
     function setStatus(txt)
         if usejava('desktop')
             selected_img = img.UserData;
         end
-        
+
         sec = toc(selected_img.total_time);
         txt = sprintf('%s (%f sec)', txt, sec);
         fprintf('[*] %s\n', txt);
-        
+
         if usejava('desktop')
             set(label, 'String', txt);
             drawnow();
@@ -222,55 +240,56 @@ function svm_models = getSVMInteractive(params, cluster_model)
             selected_img.total_time = tic;
             return;
         end
-        
+
         if exist('source', 'var')
             selected_img = source.UserData;
         end
-        
+
         [selected_img.filename, pathname] = uigetfile('*.jpg;*.png;*.gif;*.tif;*.bmp','Select the image which contains the exemplar', startpath);
         query_filename = [pathname filesep selected_img.filename];
         selected_img.I = imread(query_filename);
         selected_img.total_time = tic;
         imshow(selected_img.I, 'Parent', ax);
         set(gca,'xtick',[],'ytick',[]);
-        
+
         if exist('source', 'var')
             source.UserData = selected_img;
         end
-        
+
         shg;
     end
-            
+
     function process(source, cbdata)
+        profile_log(params);
         if usejava('desktop')
             selected_img = img.UserData;
         end
-        
+
         selected_img.total_time = tic;
-        
+
         if usejava('desktop')
             img.UserData = selected_img;
         end
-        
+
         old_params = params;
         params.stream_name = 'val';
-        
+
         [~, curid, ~] = fileparts(selected_img.filename);
-        
+
         target_dir = [params.dataset.localdir filesep 'queries'...
             filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
-            filesep curid ];
+            filesep params.codebook_type filesep curid ];
         if exist(target_dir, 'dir')
             rmdir(target_dir, 's');
         end
         mkdir(target_dir);
-        
+
         if usejava('desktop')
             pos = round(getPosition(h));
         end
-        
+
         pos(3:4) = pos(3:4) + pos(1:2) - 1;
-        
+
         croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
         imwrite(croppedI, [target_dir filesep 'query.jpg']);
 
@@ -309,27 +328,29 @@ function svm_models = getSVMInteractive(params, cluster_model)
         query_file.objectid = 1;
         query_file.curid = curid;
 
-        
+
         params.feature_type = 'bboxed';
         params.dataset.localdir = [];
         params.stream_max = 1;
-        
-        
+
+
         query_features = get_features_from_stream(params, {query_file});
         setStatus('Loading neg model for whitening...');
+        profile_log(params);
         params.neg_model = get_full_neg_model();
+        profile_log(params);
         setStatus('Filtering query features...');
         query_features = whiten_features(params, query_features);
         query_features = filter_features(params, query_features);
         query_codebooks = get_codebooks(params, query_features, cluster_model);
         clear query_features;
-        
+
         setStatus('Train SVM...');
         svm_models = get_svms(params, query_codebooks, neg_codebooks);
-        
+
         setStatus('Calibrate...');
         fit_params = calibrate_fit(params, svm_models, {query_file}, cluster_model);
-        
+
         setStatus('Loading database...');
         old_params.feature_type = 'full';
         old_params.stream_name = 'train';
@@ -337,31 +358,37 @@ function svm_models = getSVMInteractive(params, cluster_model)
         setStatus('Searching in database...');
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
         setStatus('DONE!');
+        profile_stop(params);
     end
 end
 
 function results = searchDatabase(params, database, svm_models, fit_params, pos)
+    profile_log(params);
     sizes = cellfun(@(I) size(I), {database.I}, 'UniformOutput', false);
     sizes = cell2mat(vertcat(sizes(:)));
     max_w = max(sizes(:, 3)) / params.integrals_scale_factor;
     max_h = max(sizes(:, 4)) / params.integrals_scale_factor;
-    
+
     roi_w = pos(3) - pos(1) + 1;
     roi_h = pos(4) - pos(2) + 1;
     windows = calc_windows(max_w, max_h, roi_w * (32/roi_h), 32);
-    [ bboxes, codebooks, images ] = calc_codebooks(database, windows, params.parts );
+    [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
+    % save space
+    database = rmfield(database, 'I');
+    % required for libsvm
+    codebooks = double(codebooks);
     results = cell([1 length(svm_models)]);
     for mi=1:length(svm_models)
         model = svm_models(mi);
 
         target_dir = [params.dataset.localdir filesep 'queries'...
             filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
-            filesep model.curid];
+            filesep params.codebook_type filesep model.curid];
 
         scores = model.classify(params, model, codebooks);
         scores = adjust_scores(params, fit_params, scores);
 
-        matches = scores > 0;
+        matches = scores > -0.25;
         fprintf('Found matches for %s: %d\n', model.curid, sum(matches));
         scores = scores(matches);
         mimg = images(matches);
@@ -378,30 +405,30 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 
         for ii=1:length(umimg)
             image = umimg(ii);
-            
+
             image_only = find(mimg == image);
             iobbs = mbbs(image_only, :);
             iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
             ioscores = scores(image_only, :);
-            
+
             [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
             fprintf('Reduced %d patches to %d\n', length(image_only), size(iobbs, 1));
             for pi=1:length(ioscores)
                 si = image_only(idx(pi));
                 I = get_image(params, database(image).curid);
-                bbs = iobbs(pi, :);                
+                bbs = iobbs(pi, :);
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
                 I = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
-                
+
                 imwrite(I, sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi));
-                
+
                 result(si).curid = model.curid;
                 result(si).img = image;
                 result(si).patch = pi;
                 result(si).score = ioscores(pi);
             end
           end
-            
+
 %         patchnrs = zeros([max(mimg) 1]);
 %         result = struct;
 %         if length(scores) > 0
@@ -424,33 +451,35 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 end
 
 function fit_params = calibrate_fit(params, svm_models, query_file, cluster_model)
+    profile_log(params);
     params.feature_type = 'full';
     features = get_features_from_stream(params, query_file);
     features = whiten_features(params, features);
     features = filter_features(params, features);
     codebooks = get_codebooks(params, features, cluster_model);
-    codebooks = horzcat(codebooks.I);
-    clear query_features;
+    codebooks = double(horzcat(codebooks.I));
+    clear features;
 
-    
+
     fit_params = zeros([length(svm_models) 2]);
     for mi=1:length(svm_models)
         svm_model = svm_models(mi);
-    
+
         scores = svm_model.classify(params, svm_model, codebooks);
         fit_params(mi, :) = estimate_fit_params(params, scores);
     end
 end
 
 function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, ground_truths)
+    profile_log(params);
     params.feature_type = 'full';
     features = get_features_from_stream(params, query_file);
     features = whiten_features(params, features);
     features = filter_features(params, features);
     codebooks = get_codebooks(params, features, cluster_model);
     codebooks = horzcat(codebooks.I);
-    clear query_features;
-    
+    clear features;
+
     rhos = zeros([length(svm_models) 1]);
     for mi=1:length(svm_models)
         svm_model = svm_models(mi);
@@ -471,9 +500,9 @@ function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, gro
         % enclosing
         matchingEC = windows(:, 1) >= ground_truths(1) & ground_truths(3) >= windows(:, 3);
         matchingEC = windows(:, 2) >= ground_truths(2) & ground_truths(4) >= windows(:, 4) & matchingEC;
-        
+
         matching = matchingTL | matchingBL | matchingTR | matchingBR | matchingEC;
-        
+
         [scores, idx] = sort(scores, 'descend');
         matching = matching(idx);
         zero = find(~matching, 1);
@@ -486,5 +515,6 @@ function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, gro
 end
 
 function [bbox, scores, idx] = reduce_matches(params, bbox, scores)
+    profile_log(params);
     [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
 end

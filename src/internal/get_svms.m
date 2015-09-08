@@ -1,7 +1,6 @@
-function [ svm_models ] = get_svms( params, query_codebooks, neg_codebooks )
-%GET_SVMS Summary of this function goes here
-%   Detailed explanation goes here
+function svm_models = get_svms( params, query_codebooks, neg_codebooks )
 
+    profile_log(params);
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';
         CACHE_FILE = 0;
@@ -28,11 +27,11 @@ function [ svm_models ] = get_svms( params, query_codebooks, neg_codebooks )
         fprintf(1,'get_svms: length of stream=%05d\n', length(svm_models));
         return;
     end
-    
+
     if isstruct(neg_codebooks)
         neg_codebooks = horzcat(neg_codebooks.I);
     end
-    
+
     if size(neg_codebooks, 1) < size(neg_codebooks, 2)
         neg_codebooks = neg_codebooks';
     end
@@ -42,18 +41,19 @@ function [ svm_models ] = get_svms( params, query_codebooks, neg_codebooks )
     for qi=1:length(query_codebooks)
         codebook = query_codebooks(qi);
 
-        trainInstMatrix = [codebook.I'; neg_codebooks];
-        trainLabelVector = [ones([size(codebook.I, 2) 1]); zeros([size(neg_codebooks, 1) 1])];
-        
+        trainInstMatrix = double([codebook.I'; neg_codebooks]);
+        trainLabelVector = double([ones([size(codebook.I, 2) 1]); zeros([size(neg_codebooks, 1) 1])]);
+
         m.cb_size = codebook.size;
         m.codebook = codebook.I;
         m.curid = codebook.curid;
         m.model = libsvmtrain(trainLabelVector, trainInstMatrix,...
                               sprintf('-s 0 -t 0 -c %f -w1 %.9f -q', params.esvm_default_params.train_svm_c, wpos));
-        
+
         svm_models(qi) = m;
     end
-    
+    profile_log(params);
+
     if CACHE_FILE
         save_ex(cachename, 'svm_models');
     end
@@ -67,11 +67,12 @@ function svm_models = addHandlers(svm_models)
 end
 
 function scores = classify_codebooks(params, model, codebooks)
+    profile_log(params);
     m = model.model;
-    
-% produces NaNs    
+
+% produces NaNs
 %     weights = m.SVs' * m.sv_coef;
-%    
+%
 %     if size(codebooks, 2) == size(weights, 1)
 %         scores = codebooks * weights - m.rho;
 %     else
@@ -81,4 +82,5 @@ function scores = classify_codebooks(params, model, codebooks)
         codebooks = codebooks';
     end
     [~, ~, scores] = libsvmpredict(zeros([size(codebooks, 1) 1]), codebooks, m);
+    profile_log(params);
 end

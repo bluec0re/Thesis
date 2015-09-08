@@ -1,8 +1,7 @@
 
-function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NUM_PARTS )
-%CALCCODEBOOKS Summary of this function goes here
-%   Detailed explanation goes here
+function [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, NUM_PARTS )
 
+    profile_log(params);
     fprintf('Calculating codebooks...\n');
     start = tic;
 
@@ -20,7 +19,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NU
         else
             scale_factor = 1;
         end
-        
+
         fprintf('-- [%4d/%04d] Calc codebooks for %s...', fi, length(database), filename);
         tmp = tic;
         s = size(database(fi).I);
@@ -30,12 +29,12 @@ function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NU
         imgWindowsBB = windows_bb(windows_bb(:, 1) < w & windows_bb(:, 2) < h, :);
         imgWindowsBB(:, 3) = min(imgWindowsBB(:, 3), w);
         imgWindowsBB(:, 4) = min(imgWindowsBB(:, 4), h);
-        
+
         % adjust bounding boxes
         imgWindowsBB = imgWindowsBB * scale_factor;
 
         % codebook x scales x amount
-        codebooks3 = getCodebooksFromIntegral(codebooksImg, imgWindowsBB, NUM_PARTS);
+        codebooks3 = getCodebooksFromIntegral(params, codebooksImg, imgWindowsBB, NUM_PARTS);
         [cbdim, scales, cbnum] = size(codebooks3);
         % amount * scales x codebook
         codebooks2 = zeros([cbnum * scales, cbdim]);
@@ -47,7 +46,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(database, windows_bb, NU
         % amount * scales x 4
         % is sync with codebooks2??
         imgWindowsBB = repmat(imgWindowsBB, scales, 1);
-        
+
         % is a codebook with 0 entries valid?
         valid_codebooks = any(codebooks2, 2);
         codebooks2(~valid_codebooks, :) = [];

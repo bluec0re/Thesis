@@ -1,6 +1,4 @@
-function [ new_scores ] = adjust_scores( params, fit_params, scores )
-%ADJUST_SCORES Summary of this function goes here
-%   Detailed explanation goes here
+function new_scores = adjust_scores( params, fit_params, scores )
 
     mu = fit_params(1);
     sigma = fit_params(2);

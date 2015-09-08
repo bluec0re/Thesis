@@ -1,4 +1,4 @@
-function [ neg_model ] = join_part_covariances(num_parts)
+function neg_model = join_part_covariances(num_parts)
 
 filer = 'data/negative_models/covariance_wav.mat';
 
@@ -6,7 +6,7 @@ if ~exist(filer, 'file')
 
     Sq2 = 0;
     nC = 0;
-    sum_inc = 0;    
+    sum_inc = 0;
 
     for part_idx = 1:num_parts,
 
@@ -27,4 +27,3 @@ if ~exist(filer, 'file')
 else
    load(filer);
 end
-

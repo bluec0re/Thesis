@@ -14,8 +14,8 @@ function features = filter_features(params, features)
     basedir = sprintf('%s/models/features/', params.dataset.localdir);
     if CACHE_FILE == 1 && ~exist(basedir,'dir')
         mkdir(basedir);
-    end    
-    
+    end
+
     if isfield(params, 'feature_type')
         type = params.feature_type;
     else
@@ -31,7 +31,7 @@ function features = filter_features(params, features)
         fprintf(1,'filter_features: length of stream=%05d\n', length(features));
         return;
     end
-    
+
     for fid=1:length(features)
         feature = features(fid);
         features(fid).deletedFeatures = [];
@@ -64,6 +64,7 @@ function features = filter_features(params, features)
         end
         fprintf('\n');
     end
+    profile_log(params);
 
     if CACHE_FILE == 1
         save_ex(cachename, 'features');

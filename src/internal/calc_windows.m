@@ -1,6 +1,4 @@
-function [ windows_bb ] = calc_windows( w, h, cbw, cbh, I )
-%CALCWINDOWS Summary of this function goes here
-%   Detailed explanation goes here
+function windows_bb = calc_windows( w, h, cbw, cbh, I )
 
     if ~exist('cbw', 'var')
         cbw = 32;

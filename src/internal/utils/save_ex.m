@@ -1,6 +1,4 @@
-function [ out ] = save_ex( varargin )
-%SAVE_EX Summary of this function goes here
-%   Detailed explanation goes here
+function save_ex( varargin )
 
     filepath = varargin{1};
     [path, ~, ~] = fileparts(filepath);
@@ -25,12 +23,7 @@ function [ out ] = save_ex( varargin )
     fprintf('%f sec. Saving...', sec);
 
     tmp = tic;
-    if nargout > 0
-        out = save(varargin{:});
-    else
-        save(varargin{:});
-    end
+    save(varargin{:});
     sec = toc(tmp);
     fprintf('DONE in %f sec\n', sec);
 end
-

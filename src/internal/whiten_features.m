@@ -1,7 +1,6 @@
-function [ features ] = whiten_features( params, features )
-%WHITEN_FEATURES Summary of this function goes here
-%   Detailed explanation goes here
+function features = whiten_features( params, features )
 
+    profile_log(params);
     % cache
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';
@@ -18,8 +17,8 @@ function [ features ] = whiten_features( params, features )
     if CACHE_FILE == 1 && ~exist(basedir,'dir')
         mkdir(basedir);
     end
-    
-    
+
+
     if isfield(params, 'feature_type')
         type = params.feature_type;
     else
@@ -67,6 +66,7 @@ function [ features ] = whiten_features( params, features )
         end
         fprintf('\n');
     end
+    profile_log(params);
 
     params.neg_model = neg_model;
 
