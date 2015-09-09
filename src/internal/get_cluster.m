@@ -41,6 +41,11 @@ function model = get_cluster( params, features )
         fprintf(1,'get_cluster: length of stream=%05d\n', length(features));
         return;
     end
+    
+    if isempty(features)
+        model = [];
+        return;
+    end
 
 
     tmp = tic;

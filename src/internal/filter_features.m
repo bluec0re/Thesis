@@ -44,6 +44,10 @@ function features = filter_features(params, features)
         fprintf(1,'filter_features: length of stream=%05d\n', length(features));
         return;
     end
+    
+    if isempty(features)
+        return;
+    end
 
     for fid=1:length(features)
         feature = features(fid);

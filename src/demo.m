@@ -29,44 +29,31 @@ function demo(stream_size, scale_factor, codebook_type, train)
     params = profile_start(params);
 
     if exist('train', 'var') && train
-        cluster_model = generateCluster(params, true);
+        cluster_model = generateCluster(params);
         getImageDB(params, cluster_model);
 
         params.feature_type = 'full-masked';
         params.stream_name = 'val';
-        stream_params.stream_set_name = params.stream_name;
-        stream_params.stream_max_ex = params.stream_max;
-        stream_params.must_have_seg = 0;
-        stream_params.must_have_seg_string = '';
-        stream_params.model_type = 'exemplar';
-        stream_params.cls = params.class;
-
-        query_stream_set = esvm_get_pascal_stream(stream_params, ...
-                                              params.dataset);
-
+        
         fprintf('[*] Collecting negative features...\n');
-        neg_features = get_features_from_stream(params, query_stream_set);
-        fprintf('[*] Filtering negative features...\n');
-        neg_features = whiten_features(params, neg_features);
-        neg_features = filter_features(params, neg_features);
+        neg_features = prepare_features(params);
 
         fprintf('[*]Getting negative codebooks...');
         get_codebooks(params, neg_features, cluster_model);
         profile_stop(params);
     else
-        cluster_model = generateCluster(params, false);
+        cluster_model = generateCluster(params);
         searchInteractive(params, cluster_model);
     end
 end
 
-function cluster_model = generateCluster(params, generate)
+function cluster_model = generateCluster(params)
 %GENERATECLUSTER Generate a cluster model
 %
-%   Syntax:     cluster_model = generateCluster(params, generate)
+%   Syntax:     cluster_model = generateCluster(params)
 %
 %   Input:
 %       params - Configuration parameters
-%       generate - Boolean to indicate to generation or loading of cached model
 %
 %   Output:
 %       cluster_model - The model
@@ -75,26 +62,11 @@ function cluster_model = generateCluster(params, generate)
     params.feature_type = 'full';
     params.stream_name = 'trainval';
 
-    if generate
-        stream_params.stream_set_name = params.stream_name;
-        stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
-        stream_params.must_have_seg = 0;
-        stream_params.must_have_seg_string = '';
-        stream_params.model_type = 'exemplar'; %must be scene or exemplar;
-        stream_params.cls = params.class;
-
-        %Create an exemplar stream (list of exemplars)
-        trainval_stream_set = esvm_get_pascal_stream(stream_params, ...
-                                              params.dataset);
-
-
-        train_features = get_features_from_stream(params, trainval_stream_set);
-        train_features = whiten_features(params, train_features);
-        train_features = filter_features(params, train_features);
-    else
-        train_features = [];
-    end
-    cluster_model = get_cluster(params, train_features);
+    cluster_model = get_cluster(params, []);
+    if ~isstruct(cluster_model)
+        train_features = prepare_features(params);
+        cluster_model = get_cluster(params, train_features);
+    end    
 end
 
 function database = getImageDB(params, cluster_model)
@@ -112,20 +84,7 @@ function database = getImageDB(params, cluster_model)
     params.feature_type = 'full';
     params.stream_name = 'train';
 
-    stream_params.stream_set_name = params.stream_name;
-    stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
-    stream_params.must_have_seg = 0;
-    stream_params.must_have_seg_string = '';
-    stream_params.model_type = 'exemplar'; %must be scene or exemplar;
-    stream_params.cls = params.class;
-
-    %Create an exemplar stream (list of exemplars)
-    trainval_stream_set = esvm_get_pascal_stream(stream_params, ...
-                                          params.dataset);
-
-    all_features = get_features_from_stream(params, trainval_stream_set);
-    all_features = whiten_features(params, all_features);
-    all_features = filter_features(params, all_features);
+    all_features = prepare_features(params);
 
     database = get_codebook_integrals(params, all_features, cluster_model);
 end
@@ -144,29 +103,14 @@ function svm_models = getSVM(params, cluster_model)
 
     params.stream_name = 'val';
 
-    stream_params.stream_set_name = params.stream_name;
-    stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
-    stream_params.must_have_seg = 0;
-    stream_params.must_have_seg_string = '';
-    stream_params.model_type = 'exemplar'; %must be scene or exemplar;
-    stream_params.cls = params.class;
-
-    %Create an exemplar stream (list of exemplars)
-    query_stream_set = esvm_get_pascal_stream(stream_params, ...
-                                          params.dataset);
-
     params.feature_type = 'bboxed';
-    query_features = get_features_from_stream(params, query_stream_set);
-    query_features = whiten_features(params, query_features);
-    query_features = filter_features(params, query_features);
+    query_features = prepare_features(params);
 
     query_codebooks = get_codebooks(params, query_features, cluster_model);
     clear query_features;
 
     params.feature_type = 'full-masked';
-    neg_features = get_features_from_stream(params, query_stream_set);
-    neg_features = whiten_features(params, neg_features);
-    neg_features = filter_features(params, neg_features);
+    neg_features = prepare_features(params);
 
     neg_codebooks = get_codebooks(params, neg_features, cluster_model);
     clear neg_features;
@@ -329,21 +273,8 @@ function searchInteractive(params, cluster_model)
         %Create an exemplar stream (list of exemplars)
         params.feature_type = 'full-masked';
         if false
-            stream_params.stream_set_name = params.stream_name;
-            stream_params.stream_max_ex = params.stream_max;%length(trainval_set);
-            stream_params.must_have_seg = 0;
-            stream_params.must_have_seg_string = '';
-            stream_params.model_type = 'exemplar'; %must be scene or exemplar;
-            stream_params.cls = params.class;
-
-            query_stream_set = esvm_get_pascal_stream(stream_params, ...
-                                                  params.dataset);
-
             setStatus('Collecting negative features...');
-            neg_features = get_features_from_stream(params, query_stream_set);
-            setStatus('Filtering negative features...');
-            neg_features = whiten_features(params, neg_features);
-            neg_features = filter_features(params, neg_features);
+            neg_features = prepare_features(params);
         else
             neg_features = [];
         end
@@ -367,14 +298,12 @@ function searchInteractive(params, cluster_model)
         params.stream_max = 1;
 
 
-        query_features = get_features_from_stream(params, {query_file});
         setStatus('Loading neg model for whitening...');
         profile_log(params);
         params.neg_model = get_full_neg_model();
         profile_log(params);
         setStatus('Filtering query features...');
-        query_features = whiten_features(params, query_features);
-        query_features = filter_features(params, query_features);
+        query_features = prepare_features(params);
         query_codebooks = get_codebooks(params, query_features, cluster_model);
         clear query_features;
 
@@ -607,4 +536,27 @@ function [bbox, scores, idx] = reduce_matches(params, bbox, scores)
 
     profile_log(params);
     [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
+end
+
+function features = prepare_features(params)
+        stream_params.stream_set_name = params.stream_name;
+        stream_params.stream_max_ex = params.stream_max;
+        stream_params.must_have_seg = 0;
+        stream_params.must_have_seg_string = '';
+        stream_params.model_type = 'exemplar';
+        stream_params.cls = params.class;
+
+        query_stream_set = esvm_get_pascal_stream(stream_params, ...
+                                              params.dataset);
+
+        features = filter_features(params, []);
+        if isempty(features)
+            features = whiten_features(params, []);
+            if isempty(features)
+                features = get_features_from_stream(params, query_stream_set);
+                fprintf('[*] Filtering features...\n');
+                features = whiten_features(params, features);
+            end
+            features = filter_features(params, features);
+        end
 end

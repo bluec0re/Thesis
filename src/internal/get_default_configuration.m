@@ -16,6 +16,7 @@ function params = get_default_configuration()
     params.clusters = 1000;
     params.integrals_scale_factor = 0.75; % save only 3 of 4 entries
     params.stream_max = 100;
+    params.stream_name = 'val';
     params.codebook_type = 'double';
     
     params.esvm_default_params = esvm_get_default_params;

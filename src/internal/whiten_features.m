@@ -44,6 +44,10 @@ function features = whiten_features( params, features )
         fprintf(1,'whiten_features: length of stream=%05d\n', length(features));
         return;
     end
+    
+    if isempty(features)
+        return;
+    end
 
     % neg model
     neg_model = get_neg_model(params);
