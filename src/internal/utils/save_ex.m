@@ -14,13 +14,14 @@ function save_ex( varargin )
     if ~exist(path, 'dir')
         mkdir(path);
     end
-
+    
+    [serialize, varargin] = should_serialize(varargin);
     fprintf(' Serializing...');
     tmp = tic;
-    for ai=1:nargin
+    for ai=2:length(varargin)
         arg = varargin{ai};
-        if ~strcmp(arg(1), '-') && ai > 1
-            if false
+        if ~strcmp(arg(1), '-')
+            if serialize
                 v = hlp_serialize(evalin('caller', arg));
             else
                 v = evalin('caller', arg);
@@ -35,4 +36,19 @@ function save_ex( varargin )
     save(varargin{:});
     sec = toc(tmp);
     fprintf('DONE in %f sec\n', sec);
+end
+
+function [serialize, new_args] = should_serialize(args)
+    new_args{1} = args{1};
+    serialize = false;
+    for ai=2:length(args)
+        arg = args{ai};
+        if strcmp(arg, '-serialize')
+            serialize = true;
+        elseif strcmp(arg, '-noserialize')
+            serialize = false;
+        else
+            new_args{end+1} = arg;
+        end
+    end
 end

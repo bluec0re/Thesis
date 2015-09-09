@@ -145,7 +145,7 @@ end
 
 
 
-function codebook = feature2codebookintegral(params, feature, model)
+function [codebook, scales] = feature2codebookintegral(params, feature, model)
 %FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
 %
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
@@ -156,23 +156,29 @@ function codebook = feature2codebookintegral(params, feature, model)
 %       model - The cluster model. Required fields: centroids
 %
 %   Output:
-%       codebook - A SxNxWxH matrix. S: currently 1, N: size(centroids, 1), W: I_size(2), H: I_size(1)
+%       codebook - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
+%       scales - A Cell of size S containing the associated scales.
 
     profile_log(params);
-    % TODO: allow multiple scales
-    params.NUM_SCALES = 1;
 
-    codebook = zeros([params.NUM_SCALES size(model.centroids, 1) feature.I_size(2) feature.I_size(1)]);
+    codebook = zeros([params.codebook_scales_count size(model.centroids, 1) feature.I_size(2) feature.I_size(1)]);
+    scales = cell([1 params.codebook_scales_count]);
     if strcmp(params.codebook_type, 'single')
         codebook = single(codebook);
     end
 
     if ~isempty(feature.X)
         bbs = round(feature.bbs);
-        unique_scales = unique(feature.scales);
-        scale_sizes = size(unique_scales, 2) / params.NUM_SCALES;
-        for si=1:params.NUM_SCALES
-            current_scales = ismember(feature.scales, unique_scales((si-1)*scale_sizes+1:si*scale_sizes));
+        %unique_scales = unique(feature.scales);
+        unique_scales = feature.all_scales;
+        scale_sizes = size(unique_scales, 2) / params.codebook_scales_count;
+        for si=1:params.codebook_scales_count
+            start_scale = round((si-1)*scale_sizes+1);
+            end_scale = round(si*scale_sizes);
+            current_scales = unique_scales(start_scale:end_scale);
+            scales{si} = current_scales;
+            
+            current_scales = ismember(feature.scales, current_scales);
             Y = feature.X(current_scales, :);
             fprintf('Searching clusters @ scale %d with %d features...', si, size(Y, 1));
             tmp = tic;

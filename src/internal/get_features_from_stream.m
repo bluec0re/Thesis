@@ -49,7 +49,7 @@ function features = get_features_from_stream( params, stream )
     end
 
     % struct array preallocate
-    features = alloc_struct_array(length(stream), 'curid', 'objectid',...
+    features = alloc_struct_array(length(stream), 'all_scales', 'curid', 'objectid',...
                                       'feature_type', 'I_size', 'X', 'M',...
                                       'scales', 'bbs', 'window2feature',...
                                       'area');
@@ -70,6 +70,11 @@ function features = get_features_from_stream( params, stream )
         feature = features(streamid);
         if CACHE_FILE && fileexists(imagecachename)
             load_ex(imagecachename, 'feature');
+            if ~isfield(feature, 'all_scales')
+                I = convert_to_I(model.I);
+                t = get_pyramid(I, params.esvm_default_params);
+                feature.all_scales = t.scales;
+            end
             features(streamid) = feature;
             continue;
         end
@@ -98,12 +103,12 @@ function features = get_features_from_stream( params, stream )
         end
         profile_log(params);
 
-        [feature.X, W, feature.M, offsets, uus, vvs, feature.scales] = getHogsInsideBox(t, I, mask, params);
+        [feature.X, W, feature.M, offsets, uus, vvs, feature.all_scales] = getHogsInsideBox(t, I, mask, params);
         profile_log(params);
 
         sbin = params.esvm_default_params.init_params.sbin;
         o = [uus' vvs'] - t.padder;
-        feature.scales = feature.scales(offsets(2,:));
+        feature.scales = feature.all_scales(offsets(2,:));
         feature.bbs = ([o(:,2) o(:,1) o(:,2) + 5 ...
             o(:,1)+ 5] - 1) .* ...
             repmat(sbin./feature.scales',1,4) + 1 + repmat([0 0 -1 -1],length(feature.scales),1);

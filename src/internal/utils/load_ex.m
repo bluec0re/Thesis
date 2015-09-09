@@ -1,4 +1,4 @@
-function out = load_ex( varargin )
+function [out, serialized] = load_ex( varargin )
 %LOAD_EX Advanced load wrapper
 %   Prints status information and allows to load files serialized with hlp_deserialize
 %   Behaves exactly like matlabs load function
@@ -11,7 +11,9 @@ function out = load_ex( varargin )
 %
 %   Output:
 %       out - optional struct containing the loaded variables
+%       serialized - optional boolean indicating the load of a serialized var
 
+    serialized = false;
     fprintf(1,'Loading %s...', varargin{1});
     tmp = tic;
     if nargout > 0
@@ -21,6 +23,7 @@ function out = load_ex( varargin )
             fprintf('%f sec. Deserializing...', sec);
             %tmp = tic;
             out = hlp_deserialize(out);
+            serialized = true;
         end
     else
         vars = load(varargin{:});
@@ -32,6 +35,7 @@ function out = load_ex( varargin )
             arg = fields{ai};
             if size(vars.(arg), 2) == 1 && isa(vars.(arg), 'uint8')
                 assignin('caller', arg, hlp_deserialize(vars.(arg)));
+                serialized = true;
             else
                 assignin('caller', arg, vars.(arg));
             end

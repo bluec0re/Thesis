@@ -1,13 +1,14 @@
-function demo(stream_size, scale_factor, codebook_type, train)
+function demo(stream_size, scale_factor, codebook_type, train, scale_count)
 %DEMO Demo implementation
 %
-%   Syntax: demo(stream_size, scale_factor, codebook_type, train)
+%   Syntax: demo(stream_size, scale_factor, codebook_type, train, scale_count)
 %
 %   Input:
 %       stream_size - Optional size of pascal objects to process. Default: 100
 %       scale_factor - Optional integral image scale factor. Default: 0.75, Valid: 0-1
 %       codebook_type - Optional datatype of codebooks. Default: 'double', Valid: 'double', 'single'
 %       train - Optional boolean to indicate the creation of a image database. Default: false
+%       scale_count - Optional number of different scales of integral images to use. Default: 3
 
     close all;
     dbstop if error;
@@ -24,6 +25,9 @@ function demo(stream_size, scale_factor, codebook_type, train)
     end
     if exist('codebook_type', 'var')
         params.codebook_type = codebook_type;
+    end
+    if exist('scale_count', 'var')
+        params.codebook_scales_count = scale_count;
     end
 
     params = profile_start(params);
@@ -253,7 +257,7 @@ function searchInteractive(params, cluster_model)
 
         [~, curid, ~] = fileparts(selected_img.filename);
 
-        target_dir = [params.dataset.localdir filesep 'queries'...
+        target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
             filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
             filesep params.codebook_type filesep curid ];
         if exist(target_dir, 'dir')
@@ -265,7 +269,8 @@ function searchInteractive(params, cluster_model)
             pos = round(getPosition(h));
         end
 
-        pos(3:4) = pos(3:4) + pos(1:2) - 1;
+        roi_size = pos([3 4]);
+        pos([3 4]) = pos([3 4]) + pos([1 2]) - 1;
 
         croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
         imwrite(croppedI, [target_dir filesep 'query.jpg']);
@@ -303,12 +308,13 @@ function searchInteractive(params, cluster_model)
         params.neg_model = get_full_neg_model();
         profile_log(params);
         setStatus('Filtering query features...');
-        query_features = prepare_features(params);
+        query_features = prepare_features(params, {query_file});
         query_codebooks = get_codebooks(params, query_features, cluster_model);
         clear query_features;
 
         setStatus('Train SVM...');
         svm_models = get_svms(params, query_codebooks, neg_codebooks);
+        clear neg_codebooks;
 
         setStatus('Calibrate...');
         fit_params = calibrate_fit(params, svm_models, {query_file}, cluster_model);
@@ -316,7 +322,7 @@ function searchInteractive(params, cluster_model)
         setStatus('Loading database...');
         old_params.feature_type = 'full';
         old_params.stream_name = 'train';
-        database = get_codebook_integrals(old_params, [], cluster_model);
+        database = get_codebook_integrals(old_params, [], cluster_model, roi_size);
         setStatus('Searching in database...');
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
         setStatus('DONE!');
@@ -342,14 +348,14 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     profile_log(params);
     sizes = cellfun(@(I) size(I), {database.I}, 'UniformOutput', false);
     sizes = cell2mat(vertcat(sizes(:)));
-    scale_factors = cellfun(@(I) size(I), {database.scale_factor}, 'UniformOutput', false);
+    scale_factors = {database.scale_factor};
     scale_factors = cell2mat(vertcat(scale_factors(:)));
-    max_w = max(sizes(:, 3) / scale_factors);
-    max_h = max(sizes(:, 4) / scale_factors);
+    max_w = max(sizes(:, 3) ./ scale_factors);
+    max_h = max(sizes(:, 4) ./ scale_factors);
 
     roi_w = pos(3) - pos(1) + 1;
     roi_h = pos(4) - pos(2) + 1;
-    windows = calc_windows(max_w, max_h, roi_w * (32/roi_h), 32);
+    windows = calc_windows(max_w, max_h, roi_w  * 0.75, roi_h * 0.75);
     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
     % save space
     database = rmfield(database, 'I');
@@ -359,7 +365,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     for mi=1:length(svm_models)
         model = svm_models(mi);
 
-        target_dir = [params.dataset.localdir filesep 'queries'...
+        target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
             filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
             filesep params.codebook_type filesep model.curid];
 
@@ -538,7 +544,9 @@ function [bbox, scores, idx] = reduce_matches(params, bbox, scores)
     [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
 end
 
-function features = prepare_features(params)
+function features = prepare_features(params, query_stream_set)
+
+    if ~exist('query_stream_set', 'var')
         stream_params.stream_set_name = params.stream_name;
         stream_params.stream_max_ex = params.stream_max;
         stream_params.must_have_seg = 0;
@@ -548,15 +556,16 @@ function features = prepare_features(params)
 
         query_stream_set = esvm_get_pascal_stream(stream_params, ...
                                               params.dataset);
+    end
 
-        features = filter_features(params, []);
+    features = filter_features(params, []);
+    if isempty(features)
+        features = whiten_features(params, []);
         if isempty(features)
-            features = whiten_features(params, []);
-            if isempty(features)
-                features = get_features_from_stream(params, query_stream_set);
-                fprintf('[*] Filtering features...\n');
-                features = whiten_features(params, features);
-            end
-            features = filter_features(params, features);
+            features = get_features_from_stream(params, query_stream_set);
+            fprintf('[*] Filtering features...\n');
+            features = whiten_features(params, features);
         end
+        features = filter_features(params, features);
+    end
 end
