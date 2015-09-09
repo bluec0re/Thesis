@@ -5,19 +5,23 @@ function array = alloc_struct_array( size, varargin )
 %   Syntax:     array = alloc_struct_array( size, field, ... )
 %
 %   Input:
-%       size - The requested size of the struct array
+%       size - The requested size of the struct array (vector possible)
 %       field - Variable number of fields to be contained in the array
 %
 %   Output:
 %       array - The 1xsize struct array
 
+    if ~iscell(size)
+        size = num2cell(size);
+    end
+    
     if isempty(varargin)
-        array(size) = struct;
+        array(size{:}) = struct;
     else
         % sort fieldnames
         sorted = sort(varargin);
         for ai=1:length(sorted)
-            array(size).(sorted{ai}) = [];
+            array(size{:}).(sorted{ai}) = [];
         end
     end
 end
