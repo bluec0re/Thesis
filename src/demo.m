@@ -1,4 +1,4 @@
-function demo(varargin)
+function demo(train, varargin)
 %DEMO Demo implementation
 %
 %   Syntax: demo(stream_size, scale_factor, codebook_type, train, scale_count)

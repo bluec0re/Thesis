@@ -116,6 +116,7 @@ function codebook = feature2codebook(model, params, feature)
             if sum(winFeatures) > 0
                 %Y = single(feature.X(winFeatures, :));
                 winBBs = bbs(winFeatures, :);
+                centers = [(winBBs(:, 1) + winBBs(:, 3))/2, (winBBs(:, 2) + winBBs(:, 4))/2];
                 minX = min(winBBs(:, 1));
                 minY = min(winBBs(:, 2));
                 maxX = max(winBBs(:, 3));
@@ -124,15 +125,10 @@ function codebook = feature2codebook(model, params, feature)
                 for part=1:params.parts
                     %tmp2 = tic;
                     %fprintf('Filter features...');
-                    partMinFeatures = winBBs(:,1) >= minX + xsteps(1, part);
-                    partMinFeatures = partMinFeatures & (winBBs(:,1) <= minX + xsteps(2, part));
-                    partMinFeatures = partMinFeatures & (winBBs(:,2) >= minY + ysteps(1, part));
-                    partMinFeatures = partMinFeatures & (winBBs(:,2) <= minY + ysteps(2, part));
-                    partMaxFeatures = winBBs(:,3) >= minX + xsteps(1, part);
-                    partMaxFeatures = partMaxFeatures & (winBBs(:,3) <= minX + xsteps(2, part));
-                    partMaxFeatures = partMaxFeatures & (winBBs(:,4) >= minY + ysteps(1, part));
-                    partMaxFeatures = partMaxFeatures & (winBBs(:,4) <= minY + ysteps(2, part));
-                    partFeatures = partMinFeatures | partMaxFeatures;
+                    partFeatures = centers(:,1) >= minX + xsteps(1, part);
+                    partFeatures = partFeatures & (centers(:,1) <= minX + xsteps(2, part));
+                    partFeatures = partFeatures & (centers(:,2) >= minY + ysteps(1, part));
+                    partFeatures = partFeatures & (centers(:,2) <= minY + ysteps(2, part));
 
                     %Z = Y(partFeatures, :);
                     %sec = toc(tmp2);
@@ -188,6 +184,8 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
 
     if ~isempty(feature.X)
         bbs = round(feature.bbs);
+        x = round((bbs(:, 1) + bbs(:, 3)) / 2);
+        y = round((bbs(:, 2) + bbs(:, 4)) / 2);
         [unique_scales, scale_sizes] = get_available_scales(params, feature);
         for si=1:params.codebook_scales_count
             current_scales = get_current_scales_by_index(si, unique_scales, scale_sizes);
@@ -203,8 +201,10 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
 
             fprintf('Building codebooks...');
             tmp = tic;
+            x2 = x(current_scales);
+            y2 = y(current_scales);
             for i=1:size(IDX, 1)
-                codebook(si, IDX(i), bbs(i, 3), bbs(i, 4)) = codebook(si, IDX(i), bbs(i, 3), bbs(i, 4)) + 1 / D(i);
+                codebook(si, IDX(i), x2(i), y2(i)) = codebook(si, IDX(i), x2(i), y2(i)) + 1 / D(i);
             end
             sec = toc(tmp);
             fprintf('DONE in %fs\n', sec);
