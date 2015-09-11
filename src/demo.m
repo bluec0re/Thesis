@@ -628,6 +628,12 @@ function target_dir = get_target_dir(params, curid)
     else
         calib_type = 'uncalibrated';
     end
+    
+    if params.query_from_integral
+        query_type = 'integral';
+    else
+        query_type = 'raw';
+    end
 
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...
@@ -635,5 +641,6 @@ function target_dir = get_target_dir(params, curid)
                 params.codebook_type filesep...
                 num2str(params.codebook_scales_count) '-NumScales' filesep...
                 'nonmax-' nonmax_type filesep calib_type filesep...
-                num2str(params.features_per_roi) '-featPerRoi' filesep curid];
+                num2str(params.features_per_roi) '-featPerRoi' filesep...
+                'extracted-' query_type filesep curid];
 end
