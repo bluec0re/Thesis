@@ -41,6 +41,10 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         fprintf(1,'get_codebook_integrals: length of stream=%05d\n', length(features));
         return;
     end
+    
+    if isempty(features)
+        error('No features given to get_codebook_integrals and no cache present @ %s', cachename);
+    end
 
     integral_count = params.codebook_scales_count;
     if ~isempty(roi_size)
@@ -54,12 +58,12 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
 
         if CACHE_FILE
             try
-                files = strsplit(strtrim(ls(strrep(imgcachename, '%d', '*'), '-1')), '\n');
+                files = get_possible_cache_files(imgcachename);
                 if length(files) == params.codebook_scales_count
                     integral = struct;
-                    [files, ~] = sort_files(files, imgcachename);
+                    [files, ~] = sort_cache_files(files, imgcachename);
                     if ~isempty(roi_size)
-                        filename = filter_files(files, sizes, roi_size);
+                        filename = filter_cache_files(params, files, sizes, roi_size);
                         files = {filename};
                     end
                     
@@ -109,15 +113,14 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             integrals(si, fi).I = I(si, :, :, :);
             integrals(si, fi).curid = feature.curid;
             integrals(si, fi).scale_factor = scale_factor;
-            % size of smallest feature
-            orig_size = params.esvm_default_params.init_params.sbin * 5;
             %bbs = feature.bbs(ismember(feature.scales, scales{si}), :);
             %bbs(:, [3 4]) = round(bbs(:, [3 4]) - bbs(:, [1 2]) + 1);
             %integrals(si, fi).max_size = max(bbs(:, [3 4]));
             %integrals(si, fi).min_size = min(bbs(:, [3 4]));
             current_scales = scales{si};
-            integrals(si, fi).max_size = round([orig_size, orig_size] / min(current_scales));
-            integrals(si, fi).min_size = round([orig_size, orig_size] / max(current_scales));
+            [ min_size, max_size ] = get_range_for_scale(params, current_scales);
+            integrals(si, fi).max_size = max_size;
+            integrals(si, fi).min_size = min_size;
         end
 
 
@@ -181,22 +184,23 @@ function cachename = get_cache_name(params, roi_size, create_dir)
     
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
     if params.codebook_scales_count > 1
-        cachename = sprintf('%s/%s-%s-%s-%d-%.3f-%s-%d-*x*.mat',...
+        cachename = sprintf('%s/%s-%s-%s-%d-%.3f-%s-%d-%%dx%%d.mat',...
                          basedir, params.class,...
                          type, params.stream_name, params.stream_max,...
                          scale_factor, params.codebook_type, params.codebook_scales_count);
-        try
-            if ~isempty(roi_size)
-                files = strsplit(strtrim(ls(strrep(cachename, '%d', '*'), '-1')), '\n');
-                cachename = strrep(cachename, '*', '%d');
-                [files, sizes] = sort_files(files, cachename);
-                cachename = filter_files(files, sizes, roi_size);
-            else
-                cachename = strrep(cachename, '*', '%d');
+        
+        if ~isempty(roi_size)
+            try
+                files = get_possible_cache_files(cachename);
+            catch
+                % prevent loading
+                %cachename = strrep(cachename, '*', '%d');
+                return;
             end
-        catch
-            % prevent loading
-            cachename = strrep(cachename, '*', '%d');
+            
+            %cachename = strrep(cachename, '*', '%d');
+            [files, sizes] = sort_cache_files(files, cachename);
+            cachename = filter_cache_files(params, files, sizes, roi_size);
         end
     else
         cachename = sprintf('%s/%s-%s-%s-%d-%.3f.mat',...
@@ -253,35 +257,4 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
                                feature.curid, feature.objectid, type, scale_factor);
         end
     end
-end
-
-function [files, sizes] = sort_files(files, format)
-    sizes = zeros([length(files), 2]);
-    for fi=1:length(files)
-        file = files{fi};
-        size = sscanf(file, format);
-        sizes(fi,:) = size;
-    end
-    [sizes, idx] = sortrows(sizes);
-    files = files(idx);
-end
-
-function filename = filter_files(files, sizes, requested_size)
-    % use scale set by number instead of patch sizes
-    if length(requested_size) == 1
-        filename = files{requested_size};
-        return
-    end
-    
-    for si=1:size(sizes, 1)
-        cur_size = sizes(si, :);
-        % ROI should consist of at least 2 features
-        if cur_size(1) >= requested_size(1) / 2 && cur_size(2) >= requested_size(2) / 2
-            filename = files{si};
-            fprintf('--- Selected integrals up to %dx%d\n', cur_size(1), cur_size(2));
-            return
-        end
-    end
-    % last file as default
-    filename = files{end};
 end

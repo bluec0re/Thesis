@@ -1,4 +1,4 @@
-function demo(stream_size, scale_factor, codebook_type, train, scale_count)
+function demo(varargin)
 %DEMO Demo implementation
 %
 %   Syntax: demo(stream_size, scale_factor, codebook_type, train, scale_count)
@@ -10,6 +10,7 @@ function demo(stream_size, scale_factor, codebook_type, train, scale_count)
 %       train - Optional boolean to indicate the creation of a image database. Default: false
 %       scale_count - Optional number of different scales of integral images to use. Default: 3
 
+    
     close all;
     dbstop if error;
 %    dbstop in demo at 252;
@@ -17,6 +18,8 @@ function demo(stream_size, scale_factor, codebook_type, train, scale_count)
     addpath(genpath('src/internal'));
 
     params = get_default_configuration;
+    keywords = parse_keywords(varargin, fieldnames(params));
+    params = merge_structs(params, keywords);
     if exist('scale_factor', 'var')
          params.integrals_scale_factor = scale_factor; % save only 3 of 4 entries
     end
@@ -29,6 +32,8 @@ function demo(stream_size, scale_factor, codebook_type, train, scale_count)
     if exist('scale_count', 'var')
         params.codebook_scales_count = scale_count;
     end
+    % print params
+    params
 
     params = profile_start(params);
 
@@ -42,9 +47,10 @@ function demo(stream_size, scale_factor, codebook_type, train, scale_count)
         fprintf('[*] Collecting negative features...\n');
         neg_features = prepare_features(params);
 
-        fprintf('[*]Getting negative codebooks...');
+        fprintf('[*]Getting negative codebooks...\n');
         get_codebooks(params, neg_features, cluster_model);
         profile_stop(params);
+        fprintf('[+] DONE\n');
     else
         cluster_model = generateCluster(params);
         searchInteractive(params, cluster_model);
@@ -134,11 +140,13 @@ function searchInteractive(params, cluster_model)
 %       params - Configuration parameters
 %       cluster_model - The model to generate codebooks
 
+    % start loading of
     profile_log(params);
-    %startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
-    startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_001566.jpg');
+    startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
+    %startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_001566.jpg');
 
     if usejava('desktop')
+        neg_codebooks_job = parfeval(@get_neg_codebooks, 1, params);
         f = figure('Position', [100, 100, 1024+40, 768 + 100], 'Resize', 'off');
         axis image;
         ax = axes('Units', 'pixels', 'Position', [20, 80, 1024, 768]);
@@ -240,6 +248,22 @@ function searchInteractive(params, cluster_model)
         shg;
     end
 
+    function neg_codebooks = get_neg_codebooks(params)
+        params.stream_name = 'val';
+        params.feature_type = 'full-masked';
+        if false
+            %setStatus('Collecting negative features...');
+            neg_features = prepare_features(params);
+        else
+            neg_features = [];
+        end
+
+        neg_codebooks = get_codebooks(params, neg_features, cluster_model);
+        clear neg_features;
+        %setStatus('Concating codebooks...');
+        neg_codebooks = horzcat(neg_codebooks.I);
+    end
+
     function process(source, cbdata)
         profile_log(params);
         if usejava('desktop')
@@ -257,9 +281,7 @@ function searchInteractive(params, cluster_model)
 
         [~, curid, ~] = fileparts(selected_img.filename);
 
-        target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
-            filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
-            filesep params.codebook_type filesep curid ];
+        target_dir = get_target_dir(params, curid);
         if exist(target_dir, 'dir')
             rmdir(target_dir, 's');
         end
@@ -274,21 +296,16 @@ function searchInteractive(params, cluster_model)
 
         croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
         imwrite(croppedI, [target_dir filesep 'query.jpg']);
-
-        %Create an exemplar stream (list of exemplars)
-        params.feature_type = 'full-masked';
-        if false
-            setStatus('Collecting negative features...');
-            neg_features = prepare_features(params);
-        else
-            neg_features = [];
+    
+        if usejava('desktop')
+            %database_job = parfeval(@load_database, 1, params, cluster_model, roi_size);
         end
-
         setStatus('Getting negative codebooks...');
-        neg_codebooks = get_codebooks(params, neg_features, cluster_model);
-        clear neg_features;
-        setStatus('Concating codebooks...');
-        neg_codebooks = horzcat(neg_codebooks.I);
+        if exist('neg_codebooks_job', 'var')
+            [~, neg_codebooks] = fetchNext(neg_codebooks_job);
+        else
+            neg_codebooks = get_neg_codebooks(params);
+        end
 
         setStatus('Get features from selected part...');
         query_file.I = selected_img.I;
@@ -313,20 +330,34 @@ function searchInteractive(params, cluster_model)
         clear query_features;
 
         setStatus('Train SVM...');
+        params.dataset.localdir = old_params.dataset.localdir;
         svm_models = get_svms(params, query_codebooks, neg_codebooks);
+        params.dataset.localdir = [];
         clear neg_codebooks;
 
-        setStatus('Calibrate...');
-        fit_params = calibrate_fit(params, svm_models, {query_file}, cluster_model);
+        if params.use_calibration
+            setStatus('Calibrate...');
+            fit_params = calibrate_fit(params, svm_models, {query_file}, cluster_model);
+        else
+            fit_params = [];
+        end
 
         setStatus('Loading database...');
-        old_params.feature_type = 'full';
-        old_params.stream_name = 'train';
-        database = get_codebook_integrals(old_params, [], cluster_model, roi_size);
+        if exist('database_job', 'var')
+            %[~, database] = fetchNext(database_job);
+        else
+            database = load_database(old_params, cluster_model, roi_size);
+        end
         setStatus('Searching in database...');
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
         setStatus('DONE!');
         profile_stop(params);
+    end
+
+    function database = load_database(params, cluster_model, roi_size)
+        params.feature_type = 'full';
+        params.stream_name = 'train';
+        database = get_codebook_integrals(params, [], cluster_model, roi_size);
     end
 end
 
@@ -365,14 +396,16 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     for mi=1:length(svm_models)
         model = svm_models(mi);
 
-        target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
-            filesep num2str(params.stream_max) filesep num2str(params.integrals_scale_factor)...
-            filesep params.codebook_type filesep model.curid];
+        target_dir = get_target_dir(params, model.curid);
 
         scores = model.classify(params, model, codebooks);
-        scores = adjust_scores(params, fit_params, scores);
+        if params.use_calibration
+            scores = adjust_scores(params, fit_params, scores);
 
-        matches = scores > -0.25;
+            matches = scores > -0.25;
+        else
+            matches = true([1 length(scores)]);
+        end
         fprintf('Found matches for %s: %d\n', model.curid, sum(matches));
         scores = scores(matches);
         mimg = images(matches);
@@ -541,7 +574,11 @@ function [bbox, scores, idx] = reduce_matches(params, bbox, scores)
 %       idx - Mapping between input and output (index vector)
 
     profile_log(params);
-    [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
+    if params.nonmax_type_min
+        [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
+    else
+        [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Union');
+    end
 end
 
 function features = prepare_features(params, query_stream_set)
@@ -568,4 +605,26 @@ function features = prepare_features(params, query_stream_set)
         end
         features = filter_features(params, features);
     end
+end
+
+function target_dir = get_target_dir(params, curid)
+    if params.nonmax_type_min
+        nonmax_type = 'min';
+    else
+        nonmax_type = 'union';
+    end
+    
+    if params.use_calibration
+        calib_type = 'calibrated';
+    else
+        calib_type = 'uncalibrated';
+    end
+    
+    target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
+                filesep num2str(params.stream_max) '-Imgs' filesep...
+                num2str(params.integrals_scale_factor) '-IntScale' filesep...
+                params.codebook_type filesep...
+                num2str(params.codebook_scales_count) '-NumScales' filesep...
+                'nonmax-' nonmax_type filesep calib_type filesep...
+                num2str(params.features_per_roi) '-featPerRoi' filesep curid];
 end

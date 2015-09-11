@@ -8,14 +8,16 @@ function features = get_features_from_stream( params, stream )
 %       stream - A Pascal stream
 %
 %   Output:
-%       features - A feature struct array. Fields: curid, objectid, feature_type, I_size, X, M, scales, bbs, window2feature, area
+%       features - A feature struct array. Fields: curid, objectid,
+%                  feature_type, I_size, X, M, scales, bbs, window2feature,
+%                  area, all_scales
 
     profile_log(params);
     if ~isfield(params, 'dataset')
         params.dataset.localdir = '';
         CACHE_FILE = 0;
     elseif isfield(params.dataset,'localdir') ...
-          && length(params.dataset.localdir)>0
+          && ~isempty(params.dataset.localdir)
         CACHE_FILE = 1;
     else
         params.dataset.localdir = '';
@@ -103,7 +105,7 @@ function features = get_features_from_stream( params, stream )
         end
         profile_log(params);
 
-        [feature.X, W, feature.M, offsets, uus, vvs, feature.all_scales] = getHogsInsideBox(t, I, mask, params);
+        [feature.X, ~, feature.M, offsets, uus, vvs, feature.all_scales] = getHogsInsideBox(t, I, mask, params);
         profile_log(params);
 
         sbin = params.esvm_default_params.init_params.sbin;

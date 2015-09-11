@@ -36,8 +36,8 @@ function model = get_cluster( params, features )
         model = load(cachename);
         sec = toc(start);
         fprintf(1, '%f sec\n', sec);
-        model.feature2codebook = @(p,f)(feature2codebook(p,f,model));
-        model.feature2codebookintegral = @(p,f)(feature2codebookintegral(p,f,model));
+        model.feature2codebook = @(p,f,varargin)(feature2codebook(model, p, f, varargin{:}));
+        model.feature2codebookintegral = @(p,f,varargin)(feature2codebookintegral(model, p, f, varargin{:}));
         fprintf(1,'get_cluster: length of stream=%05d\n', length(features));
         return;
     end
@@ -65,7 +65,7 @@ function model = get_cluster( params, features )
     model.feature2codebookintegral = @(p,f)(feature2codebookintegral(p,f,model));
 end
 
-function codebook = feature2codebook(params, feature, model)
+function codebook = feature2codebook(model, params, feature)
 %FEATURE2CODEBOOK Calculates a codebook from a given feature struct
 %
 %   Syntax:     codebook = feature2codebook(params, feature, model)
@@ -87,13 +87,32 @@ function codebook = feature2codebook(params, feature, model)
     if ~isempty(feature.X)
         tmp = tic;
         bbs = round(feature.bbs);
-        splitX = floor(sqrt(params.parts));
-        splitY = ceil(sqrt(params.parts));
-        fprintf('Searching clusters with %d features...', size(feature.X, 1));
-        [assignments, distances] = knnsearch(model.centroids, single(feature.X));
+        X = feature.X;
+        window2feature = feature.window2feature;
+        
+        if ~exist('current_scales', 'var')
+            current_scales = [];
+        end
+        if all(feature.I_size > feature.area([3 4])) % computation of area width & height not needed as I_size == max values
+            [unique_scales, scale_sizes] = get_available_scales(params, feature);
+            roi_size = feature.area([3 4]) - feature.area([1 2]) + 1;
+            current_scales = get_current_scales_by_size(params, unique_scales, scale_sizes, roi_size);
+        end
+        
+        if ~isempty(current_scales)
+            current_scales = filter_feature_by_scale(current_scales, feature);
+            X = X(current_scales, :);
+            bbs = bbs(current_scales, :);
+            for wi=1:length(window2feature)
+                wf = window2feature{wi};
+                window2feature{wi} = wf(current_scales, :);
+            end
+        end
+        fprintf('Searching clusters with %d features...', size(X, 1));
+        [assignments, distances] = knnsearch(model.centroids, single(X));
         emptyWindows = 0;
-        for win=1:length(feature.window2feature)
-            winFeatures = feature.window2feature{win};
+        for win=1:length(window2feature)
+            winFeatures = window2feature{win};
             if sum(winFeatures) > 0
                 %Y = single(feature.X(winFeatures, :));
                 winBBs = bbs(winFeatures, :);
@@ -139,13 +158,13 @@ function codebook = feature2codebook(params, feature, model)
 
         sec = toc(tmp);
         fprintf('DONE in %f sec\n', sec);
-        fprintf('%d out of %d windows were empty!\n', emptyWindows, length(feature.window2feature));
+        fprintf('%d out of %d windows were empty!\n', emptyWindows, length(window2feature));
     end
 end
 
 
 
-function [codebook, scales] = feature2codebookintegral(params, feature, model)
+function [codebook, scales] = feature2codebookintegral(model, params, feature)
 %FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
 %
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
@@ -169,16 +188,12 @@ function [codebook, scales] = feature2codebookintegral(params, feature, model)
 
     if ~isempty(feature.X)
         bbs = round(feature.bbs);
-        %unique_scales = unique(feature.scales);
-        unique_scales = feature.all_scales;
-        scale_sizes = size(unique_scales, 2) / params.codebook_scales_count;
+        [unique_scales, scale_sizes] = get_available_scales(params, feature);
         for si=1:params.codebook_scales_count
-            start_scale = round((si-1)*scale_sizes+1);
-            end_scale = round(si*scale_sizes);
-            current_scales = unique_scales(start_scale:end_scale);
+            current_scales = get_current_scales_by_index(si, unique_scales, scale_sizes);
             scales{si} = current_scales;
             
-            current_scales = ismember(feature.scales, current_scales);
+            current_scales = filter_feature_by_scale(current_scales, feature);
             Y = feature.X(current_scales, :);
             fprintf('Searching clusters @ scale %d with %d features...', si, size(Y, 1));
             tmp = tic;
@@ -191,12 +206,12 @@ function [codebook, scales] = feature2codebookintegral(params, feature, model)
             for i=1:size(IDX, 1)
                 codebook(si, IDX(i), bbs(i, 3), bbs(i, 4)) = codebook(si, IDX(i), bbs(i, 3), bbs(i, 4)) + 1 / D(i);
             end
-
-            codebook = cumsum(codebook, 3);
-            codebook = cumsum(codebook, 4);
             sec = toc(tmp);
             fprintf('DONE in %fs\n', sec);
         end
+        codebook = cumsum(codebook, 3);
+        codebook = cumsum(codebook, 4);
     end
     profile_log(params);
 end
+

@@ -16,7 +16,7 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
         params.dataset.localdir = '';
         CACHE_FILE = 0;
     elseif isfield(params.dataset,'localdir') ...
-          && length(params.dataset.localdir)>0
+          && ~isempty(params.dataset.localdir)
         CACHE_FILE = 1;
     else
         params.dataset.localdir = '';
@@ -28,11 +28,16 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
         mkdir(basedir);
     end
 
-    cachename = sprintf('%s/%d-%d-%s-%s-%d.mat',...
+    cachename = sprintf('%s/%d-%d-%s-%s-%d-%d.mat',...
                      basedir, params.clusters, params.parts,...
-                     params.class, params.stream_name, params.stream_max);
+                     params.class, params.stream_name, params.stream_max,...
+                     params.features_per_roi);
+                 
+    if params.stream_max == 1
+        cachename = strrep(cachename, '.mat', ['-' query_codebooks(1).curid '.mat']);
+    end
 
-    if CACHE_FILE && fileexists(cachename)
+    if CACHE_FILE && fileexists(cachename)&& false % only save
         load_ex(cachename);
         svm_models = addHandlers(svm_models);
         fprintf(1,'get_svms: length of stream=%05d\n', length(svm_models));
