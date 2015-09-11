@@ -8,3 +8,4 @@ masato
 *.jpg
 *.mat
 /vendors
+/results
