@@ -10,7 +10,7 @@ function demo(train, varargin)
 %       train - Optional boolean to indicate the creation of a image database. Default: false
 %       scale_count - Optional number of different scales of integral images to use. Default: 3
 
-    
+
     close all;
     dbstop if error;
 %    dbstop in demo at 252;
@@ -43,7 +43,7 @@ function demo(train, varargin)
 
         params.feature_type = 'full-masked';
         params.stream_name = 'val';
-        
+
         fprintf('[*] Collecting negative features...\n');
         neg_features = prepare_features(params);
 
@@ -76,7 +76,7 @@ function cluster_model = generateCluster(params)
     if ~isstruct(cluster_model)
         train_features = prepare_features(params);
         cluster_model = get_cluster(params, train_features);
-    end    
+    end
 end
 
 function database = getImageDB(params, cluster_model)
@@ -296,7 +296,7 @@ function searchInteractive(params, cluster_model)
 
         croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
         imwrite(croppedI, [target_dir filesep 'query.jpg']);
-    
+
         if usejava('desktop')
             %database_job = parfeval(@load_database, 1, params, cluster_model, roi_size);
         end
@@ -314,11 +314,13 @@ function searchInteractive(params, cluster_model)
         query_file.objectid = 1;
         query_file.curid = curid;
 
-
-        params.feature_type = 'bboxed';
-        params.dataset.localdir = [];
         params.stream_max = 1;
-
+        if params.query_from_integral
+            params.feature_type = 'full';
+        else
+            params.feature_type = 'bboxed';
+            params.dataset.localdir = [];
+        end
 
         setStatus('Loading neg model for whitening...');
         profile_log(params);
@@ -326,8 +328,15 @@ function searchInteractive(params, cluster_model)
         profile_log(params);
         setStatus('Filtering query features...');
         query_features = prepare_features(params, {query_file});
-        query_codebooks = get_codebooks(params, query_features, cluster_model);
-        clear query_features;
+
+        if params.query_from_integral
+            query_integrals = get_codebook_integrals(params, query_features, cluster_model, roi_size);
+            [ ~, query_codebooks, ~ ] = calc_codebooks(params, query_integrals, query_file.bbox, params.parts );
+            clear query_features;
+        else
+            query_codebooks = get_codebooks(params, query_features, cluster_model);
+            clear query_features;
+        end
 
         setStatus('Train SVM...');
         params.dataset.localdir = old_params.dataset.localdir;
@@ -613,13 +622,13 @@ function target_dir = get_target_dir(params, curid)
     else
         nonmax_type = 'union';
     end
-    
+
     if params.use_calibration
         calib_type = 'calibrated';
     else
         calib_type = 'uncalibrated';
     end
-    
+
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...
                 num2str(params.integrals_scale_factor) '-IntScale' filesep...

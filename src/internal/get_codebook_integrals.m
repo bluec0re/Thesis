@@ -41,7 +41,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         fprintf(1,'get_codebook_integrals: length of stream=%05d\n', length(features));
         return;
     end
-    
+
     if isempty(features)
         error('No features given to get_codebook_integrals and no cache present @ %s', cachename);
     end
@@ -66,7 +66,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                         filename = filter_cache_files(params, files, sizes, roi_size);
                         files = {filename};
                     end
-                    
+
                     for ci=1:length(files)
                         load_ex(files{ci});
                         if ~isfield(integral, 'scale_factor')
@@ -82,14 +82,14 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                         end
                         integrals(ci, fi) = integral;
                     end
-                
+
                     continue;
                 end
             catch
                 % no files found
             end
         end
-        
+
         [I, scales] = cluster_model.feature2codebookintegral(params, feature);
         if scale_factor < 1 && scale_factor > 0
             deleteEveryN = 1 / (1 - scale_factor);
@@ -108,7 +108,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             I(:, :, deleteCols, :) = [];
             I(:, :, :, deleteRows) = [];
         end
-        
+
         for si=1:length(scales)
             integrals(si, fi).I = I(si, :, :, :);
             integrals(si, fi).curid = feature.curid;
@@ -133,7 +133,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     end
     profile_log(params);
 
-    if CACHE_FILE
+    if CACHE_FILE && size(integrals, 2) > 1
         orig_integrals = integrals;
         for si=1:size(orig_integrals, 1)
             integrals = orig_integrals(si, :);
@@ -179,16 +179,16 @@ function cachename = get_cache_name(params, roi_size, create_dir)
     else
         type = 'bboxed';
     end
-    
+
     basedir = get_cache_basedir(params, create_dir);
-    
+
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
     if params.codebook_scales_count > 1
         cachename = sprintf('%s/%s-%s-%s-%d-%.3f-%s-%d-%%dx%%d.mat',...
                          basedir, params.class,...
                          type, params.stream_name, params.stream_max,...
                          scale_factor, params.codebook_type, params.codebook_scales_count);
-        
+
         if ~isempty(roi_size)
             try
                 files = get_possible_cache_files(cachename);
@@ -197,7 +197,7 @@ function cachename = get_cache_name(params, roi_size, create_dir)
                 %cachename = strrep(cachename, '*', '%d');
                 return;
             end
-            
+
             %cachename = strrep(cachename, '*', '%d');
             [files, sizes] = sort_cache_files(files, cachename);
             cachename = filter_cache_files(params, files, sizes, roi_size);
@@ -233,7 +233,7 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
     else
         type = 'bboxed';
     end
-    
+
     basedir = get_cache_basedir(params, create_dir);
     detaildir = sprintf('%s/images/', basedir);
     if create_dir && ~exist(detaildir,'dir')

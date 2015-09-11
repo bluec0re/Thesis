@@ -23,7 +23,8 @@ function params = get_default_configuration()
     params.nonmax_type_min = true;
     params.use_calibration = true;
     params.features_per_roi = 2;
-    
+    params.query_from_integral = false;
+
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;
     params.esvm_default_params.detect_add_flip = 0;
@@ -33,4 +34,3 @@ function params = get_default_configuration()
                                           data_directory,...
                                           results_directory);
 end
-

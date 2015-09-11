@@ -92,7 +92,7 @@ function codebooks = get_codebooks(params, features, cluster_model)
     end
     profile_log(params);
 
-    if CACHE_FILE
+    if CACHE_FILE && length(codebooks) > 1
         save_ex(cachename, 'codebooks');
     end
 end
