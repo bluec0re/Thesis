@@ -39,7 +39,7 @@ function features = whiten_features( params, features )
                      basedir, params.class,...
                      type, params.stream_name, params.stream_max);
 
-    if CACHE_FILE && fileexists(cachename)
+    if CACHE_FILE && fileexists(cachename) && params.stream_max > 1
         load_ex(cachename, 'features');
         fprintf(1,'whiten_features: length of stream=%05d\n', length(features));
         return;
@@ -84,7 +84,7 @@ function features = whiten_features( params, features )
 
     params.neg_model = neg_model;
 
-    if CACHE_FILE == 1
+    if CACHE_FILE && params.stream_max > 1
         save_ex(cachename, 'features');
     end
 end

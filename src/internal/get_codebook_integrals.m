@@ -32,22 +32,37 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         roi_size = [];
     end
     cachename = get_cache_name(params, roi_size, CACHE_FILE);
+    
+    % test if file was already loaded
+    if evalin('base', ['exist(''LAST_DB'', ''var'') && strcmp(LAST_DB, ''' cachename ''');']);
+        fprintf('++ Using preloaded Database %s\n', cachename);
+        integrals = evalin('base', 'DB;');
+        return;
+    elseif params.stream_max > 1
+        evalin('base', 'clear DB LAST_DB;');
+    end
 
     if CACHE_FILE && fileexists(cachename)
         load_ex(cachename);
         if ~isfield(integrals, 'scale_factor')
             [integrals.scale_factor] = deal(1);
         end
+        if params.stream_max > 1
+            assignin('base', 'LAST_DB', cachename);
+            assignin('base', 'DB', integrals);
+        end
         fprintf(1,'get_codebook_integrals: length of stream=%05d\n', length(features));
         return;
     end
 
     if isempty(features)
-        error('No features given to get_codebook_integrals and no cache present @ %s', cachename);
+        warning('No features given to get_codebook_integrals and no cache present @ %s', cachename);
+        integrals = [];
+        return;
     end
 
     integral_count = params.codebook_scales_count;
-    if ~isempty(roi_size)
+    if ~isempty(roi_size) && params.stream_max == 1
         integral_count = 1;
     end
     integrals = alloc_struct_array({integral_count, length(features)}, 'I', 'curid', 'scale_factor', 'max_size', 'min_size');
@@ -59,34 +74,36 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         if CACHE_FILE
             try
                 files = get_possible_cache_files(imgcachename);
-                if length(files) == params.codebook_scales_count
-                    integral = struct;
-                    [files, ~] = sort_cache_files(files, imgcachename);
-                    if ~isempty(roi_size)
-                        filename = filter_cache_files(params, files, sizes, roi_size);
-                        files = {filename};
-                    end
-
-                    for ci=1:length(files)
-                        load_ex(files{ci});
-                        if ~isfield(integral, 'scale_factor')
-                            integral.scale_factor = 1;
-                        end
-                        bbs = feature.bbs;
-                        bbs(:, [3 4]) = bbs(:, [3 4]) - bbs(:, [1 2]) + 1;
-                        if ~isfield(integral, 'max_size')
-                            integral.max_size = max(bbs(:, [3 4]));
-                        end
-                        if ~isfield(integral, 'min_size')
-                            integral.min_size = min(bbs(:, [3 4]));
-                        end
-                        integrals(ci, fi) = integral;
-                    end
-
-                    continue;
-                end
             catch
                 % no files found
+                files = [];
+            end
+
+            if length(files) == params.codebook_scales_count
+                integral = struct;
+                [files, sizes] = sort_cache_files(files, imgcachename);
+                if ~isempty(roi_size) && params.stream_max == 1
+                    filename = filter_cache_files(params, files, sizes, roi_size);
+                    files = {filename};
+                end
+
+                for ci=1:length(files)
+                    load_ex(files{ci});
+                    if ~isfield(integral, 'scale_factor')
+                        integral.scale_factor = 1;
+                    end
+                    bbs = feature.bbs;
+                    bbs(:, [3 4]) = bbs(:, [3 4]) - bbs(:, [1 2]) + 1;
+                    if ~isfield(integral, 'max_size')
+                        integral.max_size = max(bbs(:, [3 4]));
+                    end
+                    if ~isfield(integral, 'min_size')
+                        integral.min_size = min(bbs(:, [3 4]));
+                    end
+                    integrals(ci, fi) = integral;
+                end
+
+                continue;
             end
         end
 
@@ -134,11 +151,26 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     profile_log(params);
 
     if CACHE_FILE && size(integrals, 2) > 1
+        keyboard;
         orig_integrals = integrals;
         for si=1:size(orig_integrals, 1)
             integrals = orig_integrals(si, :);
             tmp = max(vertcat(integrals.max_size));
-            save_ex(sprintf(cachename, tmp(1), tmp(2)), 'integrals');
+            save_ex(sprintf(cachename, tmp(1), tmp(2)), 'integrals');                
+        end
+        
+        if ~isempty(roi_size)
+            cachename2 = get_cache_name(params, roi_size, CACHE_FILE);
+            
+            for si=1:size(orig_integrals, 1)
+                integrals = orig_integrals(si, :);
+                tmp = max(vertcat(integrals.max_size));
+                if strcmp(sprintf(cachename, tmp(1), tmp(2)), cachename2)
+                    break
+                end
+            end
+            assignin('base', 'LAST_DB', cachename2);
+            assignin('base', 'DB', integrals);
         end
     end
 end
@@ -184,8 +216,8 @@ function cachename = get_cache_name(params, roi_size, create_dir)
 
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
     if params.codebook_scales_count > 1
-        cachename = sprintf('%s/%s-%s-%s-%d-%.3f-%s-%d-%%dx%%d.mat',...
-                         basedir, params.class,...
+        cachename = sprintf('%s/%d-%s-%s-%s-%d-%.3f-%s-%d-%%dx%%d.mat',...
+                         basedir, params.clusters, params.class,...
                          type, params.stream_name, params.stream_max,...
                          scale_factor, params.codebook_type, params.codebook_scales_count);
 
@@ -203,13 +235,13 @@ function cachename = get_cache_name(params, roi_size, create_dir)
             cachename = filter_cache_files(params, files, sizes, roi_size);
         end
     else
-        cachename = sprintf('%s/%s-%s-%s-%d-%.3f.mat',...
-                         basedir, params.class,...
+        cachename = sprintf('%s/%d-%s-%s-%s-%d-%.3f.mat',...
+                         basedir, params.clusters, params.class,...
                          type, params.stream_name, params.stream_max, scale_factor);
 
         if strcmp(params.codebook_type, 'single')
-            cachename = sprintf('%s/%s-%s-%s-%d-%.3f-single.mat',...
-                             basedir, params.class,...
+            cachename = sprintf('%s/%d-%s-%s-%s-%d-%.3f-single.mat',...
+                             basedir, params.clusters, params.class,...
                              type, params.stream_name, params.stream_max, scale_factor);
         end
     end
@@ -242,18 +274,18 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
 
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
     if params.codebook_scales_count > 1
-        imgcachename = sprintf('%s/%s-%s-%d-%s-%.3f-%s-%d-%%dx%%d.mat',...
-                         detaildir, params.class,...
+        imgcachename = sprintf('%s/%d-%s-%s-%d-%s-%.3f-%s-%d-%%dx%%d.mat',...
+                         detaildir, params.clusters, params.class,...
                          feature.curid, feature.objectid, type, scale_factor,...
                          params.codebook_type, params.codebook_scales_count);
     else
-        imgcachename = sprintf('%s/%s-%s-%d-%s-%.3f.mat',...
-                               detaildir, params.class,...
+        imgcachename = sprintf('%s/%d-%s-%s-%d-%s-%.3f.mat',...
+                               detaildir, params.clusters, params.class,...
                                feature.curid, feature.objectid, type, scale_factor);
 
         if strcmp(params.codebook_type, 'single')
-            imgcachename = sprintf('%s/%s-%s-%d-%s-%.3f-single.mat',...
-                               detaildir, params.class,...
+            imgcachename = sprintf('%s/%s-%%d-s-%d-%s-%.3f-single.mat',...
+                               detaildir, params.clusters, params.class,...
                                feature.curid, feature.objectid, type, scale_factor);
         end
     end

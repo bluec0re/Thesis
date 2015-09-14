@@ -59,7 +59,7 @@ function windows_bb = calc_windows( w, h, cbw, cbh, I )
         end
     end
     sec = toc;
-    fprintf('DONE in %f sec\n', sec);
+    fprintf('DONE in %f sec. %d total windows\n', sec, size(windows_bb, 1));
 
 
     if debug

@@ -44,7 +44,7 @@ function features = get_features_from_stream( params, stream )
                      basedir, params.class,...
                      type, params.stream_name, params.stream_max);
 
-    if CACHE_FILE && fileexists(cachename)
+    if CACHE_FILE && fileexists(cachename) && params.stream_max > 1
         load_ex(cachename, 'features');
         fprintf(1,'get_features_from_stream: length of stream=%05d\n', length(features));
         return;
@@ -141,7 +141,7 @@ function features = get_features_from_stream( params, stream )
         features = features(unique_features);
     end
 
-    if CACHE_FILE == 1
+    if CACHE_FILE && params.stream_max > 1
         save_ex(cachename, 'features');
     end
 end

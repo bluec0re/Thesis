@@ -51,6 +51,8 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
     if size(neg_codebooks, 1) < size(neg_codebooks, 2)
         neg_codebooks = neg_codebooks';
     end
+    
+    fprintf(' Using %d negative samples\n', size(neg_codebooks, 1));
 
     svm_models = alloc_struct_array(length(query_codebooks), 'model', 'curid', 'codebook', 'cb_size');
     wpos = params.esvm_default_params.train_positives_constant;
@@ -86,17 +88,20 @@ function scores = classify_codebooks(params, model, codebooks)
     profile_log(params);
     m = model.model;
 
-% produces NaNs
-%     weights = m.SVs' * m.sv_coef;
-%
-%     if size(codebooks, 2) == size(weights, 1)
-%         scores = codebooks * weights - m.rho;
-%     else
-%         scores = codebooks' * weights - m.rho;
-%     end
-    if size(codebooks, 1) == size(m.SVs, 2)
-        codebooks = codebooks';
+
+    if params.use_libsvm_classification
+        if size(codebooks, 1) == size(m.SVs, 2)
+            codebooks = codebooks';
+        end
+        [~, ~, scores] = libsvmpredict(zeros([size(codebooks, 1) 1]), codebooks, m);
+    else % produces NaNs
+        weights = m.SVs' * m.sv_coef;
+
+        if size(codebooks, 2) == size(weights, 1)
+            scores = codebooks * weights - m.rho;
+        else
+            scores = codebooks' * weights - m.rho;
+        end
     end
-    [~, ~, scores] = libsvmpredict(zeros([size(codebooks, 1) 1]), codebooks, m);
     profile_log(params);
 end

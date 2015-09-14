@@ -24,6 +24,9 @@ function params = get_default_configuration()
     params.use_calibration = true;
     params.features_per_roi = 2;
     params.query_from_integral = false;
+    params.default_query_file = '2008_000615';
+    params.default_query_file = '2008_001566';
+    params.use_libsvm_classification = true;
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;

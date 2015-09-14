@@ -142,8 +142,7 @@ function searchInteractive(params, cluster_model)
 
     % start loading of
     profile_log(params);
-    startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_000615.jpg');
-    %startpath = strrep(params.dataset.imgpath, '%s.jpg', '2008_001566.jpg');
+    startpath = strrep(params.dataset.imgpath, '%s', params.default_query_file);
 
     if usejava('desktop')
         neg_codebooks_job = parfeval(@get_neg_codebooks, 1, params);
@@ -204,6 +203,8 @@ function searchInteractive(params, cluster_model)
     % run directly if in cli mode
     if ~usejava('desktop')
         process([], []);
+    else
+        uiwait;
     end
 
     function setStatus(txt)
@@ -251,15 +252,14 @@ function searchInteractive(params, cluster_model)
     function neg_codebooks = get_neg_codebooks(params)
         params.stream_name = 'val';
         params.feature_type = 'full-masked';
-        if false
+        neg_codebooks = get_codebooks(params, [], cluster_model);
+        if ~isstruct(neg_codebooks)
             %setStatus('Collecting negative features...');
             neg_features = prepare_features(params);
-        else
-            neg_features = [];
+            neg_codebooks = get_codebooks(params, neg_features, cluster_model);
+            clear neg_features;
         end
-
-        neg_codebooks = get_codebooks(params, neg_features, cluster_model);
-        clear neg_features;
+        
         %setStatus('Concating codebooks...');
         neg_codebooks = horzcat(neg_codebooks.I);
     end
@@ -285,6 +285,7 @@ function searchInteractive(params, cluster_model)
         if exist(target_dir, 'dir')
             rmdir(target_dir, 's');
         end
+        fprintf('++ Using target dir %s\n', target_dir);
         mkdir(target_dir);
 
         if usejava('desktop')
@@ -324,16 +325,28 @@ function searchInteractive(params, cluster_model)
 
         setStatus('Loading neg model for whitening...');
         profile_log(params);
-        params.neg_model = get_full_neg_model();
+        if evalin('base', 'exist(''NEG_MODEL'', ''var'');')
+            fprintf('++ Using preloaded negative model\n');
+            params.neg_model = evalin('base', 'NEG_MODEL;');
+        else
+            params.neg_model = get_full_neg_model();
+            assignin('base', 'NEG_MODEL', params.neg_model);
+        end
         profile_log(params);
         setStatus('Filtering query features...');
-        query_features = prepare_features(params, {query_file});
 
         if params.query_from_integral
-            query_integrals = get_codebook_integrals(params, query_features, cluster_model, roi_size);
-            [ ~, query_codebooks, ~ ] = calc_codebooks(params, query_integrals, query_file.bbox, params.parts );
-            clear query_features;
-        else
+            query_integrals = get_codebook_integrals(params, [], cluster_model, roi_size);
+            if ~isstruct(query_integrals)
+                query_features = prepare_features(params, {query_file});
+                query_integrals = get_codebook_integrals(params, query_features, cluster_model, roi_size);
+                clear query_features;
+            end
+            [ query_codebooks.size, query_codebooks.I, ~ ] = calc_codebooks(params, query_integrals, query_file.bbox, params.parts );
+            query_codebooks.I = query_codebooks.I';
+            query_codebooks.curid = query_file.curid;
+        else            
+            query_features = prepare_features(params, {query_file});
             query_codebooks = get_codebooks(params, query_features, cluster_model);
             clear query_features;
         end
@@ -361,12 +374,23 @@ function searchInteractive(params, cluster_model)
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
         setStatus('DONE!');
         profile_stop(params);
+        
+        if usejava('desktop')
+            uiresume;
+        end
     end
 
     function database = load_database(params, cluster_model, roi_size)
         params.feature_type = 'full';
         params.stream_name = 'train';
         database = get_codebook_integrals(params, [], cluster_model, roi_size);
+        if ~isstruct(database)
+            params.feature_type = 'full';
+            params.stream_name = 'train';
+
+            all_features = prepare_features(params);
+            database = get_codebook_integrals(params, all_features, cluster_model, roi_size);
+        end
     end
 end
 
@@ -407,7 +431,10 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 
         target_dir = get_target_dir(params, model.curid);
 
+        fprintf('Classifying patches...');
+        tmp = tic;
         scores = model.classify(params, model, codebooks);
+        fprintf('DONE in %f sec\n', toc(tmp));
         if params.use_calibration
             scores = adjust_scores(params, fit_params, scores);
 
@@ -453,7 +480,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                 result(si).patch = pi;
                 result(si).score = ioscores(pi);
             end
-          end
+        end
 
 %         patchnrs = zeros([max(mimg) 1]);
 %         result = struct;
@@ -630,17 +657,18 @@ function target_dir = get_target_dir(params, curid)
     end
     
     if params.query_from_integral
-        query_type = 'integral';
+        query_src = 'integral';
     else
-        query_type = 'raw';
+        query_src = 'raw';
     end
 
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
+                filesep num2str(params.clusters) '-Cluster'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...
                 num2str(params.integrals_scale_factor) '-IntScale' filesep...
                 params.codebook_type filesep...
                 num2str(params.codebook_scales_count) '-NumScales' filesep...
                 'nonmax-' nonmax_type filesep calib_type filesep...
                 num2str(params.features_per_roi) '-featPerRoi' filesep...
-                'extracted-' query_type filesep curid];
+                'querysrc-' query_src filesep curid];
 end

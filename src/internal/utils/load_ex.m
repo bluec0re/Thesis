@@ -14,7 +14,7 @@ function [out, serialized] = load_ex( varargin )
 %       serialized - optional boolean indicating the load of a serialized var
 
     serialized = false;
-    fprintf(1,'Loading %s...', varargin{1});
+    fprintf(1,'Loading %s...', strrep(varargin{1}, '//', '/'));
     tmp = tic;
     if nargout > 0
         out = load(varargin{:});
@@ -39,7 +39,7 @@ function [out, serialized] = load_ex( varargin )
             else
                 assignin('caller', arg, vars.(arg));
             end
-            rmfield(vars, arg);
+            vars = rmfield(vars, arg);
         end
     end
     sec = toc(tmp);

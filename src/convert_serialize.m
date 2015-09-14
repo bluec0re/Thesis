@@ -1,3 +1,4 @@
+
 function convert_serialize(filename)
 %CONVERT_SERIALIZE Creates a corresponding file with toggled serialization
 %

@@ -40,19 +40,32 @@ function codebooks = get_codebooks(params, features, cluster_model)
         type = 'bboxed';
     end
 
-    cachename = sprintf('%s/%s-%s-%s-%d.mat',...
-                     basedir, params.class,...
+    cachename = sprintf('%s/%d-%s-%s-%s-%d.mat',...
+                     basedir, params.clusters, params.class,...
                      type, params.stream_name, params.stream_max);
 
     if strcmp(params.codebook_type, 'single')
-        cachename = sprintf('%s/%s-%s-%s-%d-single.mat',...
-                     basedir, params.class,...
+        cachename = sprintf('%s/%d-%s-%s-%s-%d-single.mat',...
+                     basedir, params.clusters, params.class,...
                      type, params.stream_name, params.stream_max);
+    end
+    
+    if evalin('base', ['exist(''LAST_NEG_CB'', ''var'') && strcmp(LAST_NEG_CB, ''' cachename ''');'])
+        fprintf('++ Using preloaded negative codebooks %s\n', cachename);
+        codebooks = evalin('base', 'NEG_CB');
+        return;
     end
 
     if CACHE_FILE && fileexists(cachename)
         load_ex(cachename);
         fprintf(1,'get_codebooks: length of stream=%05d\n', length(features));
+        assignin('base', 'NEG_CB', codebooks);
+        assignin('base', 'LAST_NEG_CB', cachename);
+        return;
+    end
+    
+    if isempty(features)
+        codebooks = [];
         return;
     end
 
@@ -61,12 +74,12 @@ function codebooks = get_codebooks(params, features, cluster_model)
         feature = features(fi);
 
 
-        imgcachename = sprintf('%s/%s-%s-%d-%s.mat',...
-                               detaildir, params.class,...
+        imgcachename = sprintf('%s/%d-%s-%s-%d-%s.mat',...
+                               detaildir, params.clusters, params.class,...
                                feature.curid, feature.objectid, type);
         if strcmp(params.codebook_type, 'single')
-            imgcachename = sprintf('%s/%s-%s-%d-%s-single.mat',...
-                               detaildir, params.class,...
+            imgcachename = sprintf('%s/%d-%s-%s-%d-%s-single.mat',...
+                               detaildir, params.clusters, params.class,...
                                feature.curid, feature.objectid, type);
         end
 
@@ -93,6 +106,8 @@ function codebooks = get_codebooks(params, features, cluster_model)
     profile_log(params);
 
     if CACHE_FILE && length(codebooks) > 1
-        save_ex(cachename, 'codebooks');
+        save_ex(cachename, 'codebooks');        
+        assignin('base', 'NEG_CB', codebooks);
+        assignin('base', 'LAST_NEG_CB', cachename);
     end
 end
