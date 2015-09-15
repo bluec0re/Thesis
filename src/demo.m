@@ -155,14 +155,8 @@ function results = searchInteractive(params, cluster_model)
 
     selected_img = select_img();
 
-    if strcmp(selected_img.filename, '2008_000615.jpg')
-        rec = PASreadrecord('DBs/Pascal/VOC2011/Annotations/2008_000615.xml');
-        initbb = rec.objects(2).bbox;
-        pos = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
-    elseif strcmp(selected_img.filename, '2008_001566.jpg')
-        rec = PASreadrecord('DBs/Pascal/VOC2011/Annotations/2008_001566.xml');
-        initbb = rec.objects(1).bbox;
-        pos = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
+    if isfield(params, 'default_bounding_box') && ~isempty(params.default_bounding_box)
+        pos = params.default_bounding_box;
     else
         pos = [];
     end
