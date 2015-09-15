@@ -16,8 +16,8 @@ function params = get_default_configuration()
     params.clusters = 1000;
     %params.integrals_scale_factor = 0.75; % save only 3 of 4 entries
     params.integrals_scale_factor = 1;
-    params.stream_max = 20;
-    params.stream_name = 'val';
+    params.stream_max = 100; % default database contains only 50 images, but multiple objects per image
+    params.stream_name = 'query';
     params.codebook_type = 'double';
     params.codebook_scales_count = 3;
     params.nonmax_type_min = true;
@@ -36,4 +36,8 @@ function params = get_default_configuration()
     params.dataset = esvm_get_voc_dataset(dataset_directory,...
                                           data_directory,...
                                           results_directory);
+                                      
+    % custom image sets
+    params.dataset.clsimgsetpath = 'data/%s_%s.txt';
+    params.dataset.imgsetpath = 'data/%s.txt';
 end

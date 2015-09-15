@@ -151,7 +151,6 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     profile_log(params);
 
     if CACHE_FILE && size(integrals, 2) > 1
-        keyboard;
         orig_integrals = integrals;
         for si=1:size(orig_integrals, 1)
             integrals = orig_integrals(si, :);

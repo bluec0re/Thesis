@@ -42,7 +42,7 @@ function demo(train, varargin)
         getImageDB(params, cluster_model);
 
         params.feature_type = 'full-masked';
-        params.stream_name = 'val';
+        params.stream_name = 'query';
 
         fprintf('[*] Collecting negative features...\n');
         neg_features = prepare_features(params);
@@ -70,7 +70,8 @@ function cluster_model = generateCluster(params)
 
     profile_log(params);
     params.feature_type = 'full';
-    params.stream_name = 'trainval';
+    params.stream_name = 'database';
+    params.class = '';
 
     cluster_model = get_cluster(params, []);
     if ~isstruct(cluster_model)
@@ -92,7 +93,8 @@ function database = getImageDB(params, cluster_model)
 %       database - The database of integral images
 
     params.feature_type = 'full';
-    params.stream_name = 'train';
+    params.stream_name = 'database';
+    params.class = '';
 
     all_features = prepare_features(params);
 
@@ -111,7 +113,7 @@ function svm_models = getSVM(params, cluster_model)
 %   Output:
 %       svm_models - SVM model struct
 
-    params.stream_name = 'val';
+    params.stream_name = 'query';
 
     params.feature_type = 'bboxed';
     query_features = prepare_features(params);
@@ -128,7 +130,7 @@ function svm_models = getSVM(params, cluster_model)
     svm_models = get_svms(params, query_codebooks, neg_codebooks);
 end
 
-function searchInteractive(params, cluster_model)
+function results = searchInteractive(params, cluster_model)
 %SEARCHINTERACTIVE Do a complete interactive database search
 %   Asks the user for a image in the dataset image path.
 %   Allows to mark a ROI to search for
@@ -202,9 +204,10 @@ function searchInteractive(params, cluster_model)
 
     % run directly if in cli mode
     if ~usejava('desktop')
-        process([], []);
+        results = process([], []);
     else
         uiwait;
+        results = btn.UserData;
     end
 
     function setStatus(txt)
@@ -250,7 +253,7 @@ function searchInteractive(params, cluster_model)
     end
 
     function neg_codebooks = get_neg_codebooks(params)
-        params.stream_name = 'val';
+        params.stream_name = 'query';
         params.feature_type = 'full-masked';
         neg_codebooks = get_codebooks(params, [], cluster_model);
         if ~isstruct(neg_codebooks)
@@ -264,7 +267,7 @@ function searchInteractive(params, cluster_model)
         neg_codebooks = horzcat(neg_codebooks.I);
     end
 
-    function process(source, cbdata)
+    function results = process(source, cbdata)
         profile_log(params);
         if usejava('desktop')
             selected_img = img.UserData;
@@ -277,7 +280,7 @@ function searchInteractive(params, cluster_model)
         end
 
         old_params = params;
-        params.stream_name = 'val';
+        params.stream_name = 'query';
 
         [~, curid, ~] = fileparts(selected_img.filename);
 
@@ -376,18 +379,17 @@ function searchInteractive(params, cluster_model)
         profile_stop(params);
         
         if usejava('desktop')
+            btn.UserData = results;
             uiresume;
         end
     end
 
     function database = load_database(params, cluster_model, roi_size)
         params.feature_type = 'full';
-        params.stream_name = 'train';
+        params.stream_name = 'database';
+        params.class = '';
         database = get_codebook_integrals(params, [], cluster_model, roi_size);
         if ~isstruct(database)
-            params.feature_type = 'full';
-            params.stream_name = 'train';
-
             all_features = prepare_features(params);
             database = get_codebook_integrals(params, all_features, cluster_model, roi_size);
         end
@@ -453,7 +455,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
         mbbs = round(mbbs(idx, :));
         result = struct;
         if ~isempty(scores)
-            result(length(scores)).curid = model.curid;
+            result(length(scores)).query_curid = model.curid;
         end
 
         for ii=1:length(umimg)
@@ -473,12 +475,16 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
                 I = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
 
-                imwrite(I, sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi));
+                filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
+                imwrite(I, filename);
 
-                result(si).curid = model.curid;
+                result(si).query_curid = model.curid;
+                result(si).curid = database(image).curid;
                 result(si).img = image;
                 result(si).patch = pi;
                 result(si).score = ioscores(pi);
+                result(si).bbox = bbs;
+                result(si).filename = filename;
             end
         end
 
@@ -627,7 +633,7 @@ function features = prepare_features(params, query_stream_set)
         stream_params.model_type = 'exemplar';
         stream_params.cls = params.class;
 
-        query_stream_set = esvm_get_pascal_stream(stream_params, ...
+        query_stream_set = esvm_get_pascal_stream_custom(stream_params, ...
                                               params.dataset);
     end
 
@@ -636,9 +642,10 @@ function features = prepare_features(params, query_stream_set)
         features = whiten_features(params, []);
         if isempty(features)
             features = get_features_from_stream(params, query_stream_set);
-            fprintf('[*] Filtering features...\n');
+            fprintf('[*] Whitening features...\n');
             features = whiten_features(params, features);
         end
+        fprintf('[*] Filtering features...\n');
         features = filter_features(params, features);
     end
 end

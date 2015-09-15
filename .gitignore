@@ -1,7 +1,7 @@
 *.swp
 *.swo
 *~
-/data
+/data/negative_models
 /DBs
 masato
 *.avi
