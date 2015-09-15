@@ -61,8 +61,8 @@ function model = get_cluster( params, features )
     end
 
     % prevent saving of function handles
-    model.feature2codebook = @(p,f)(feature2codebook(p,f,model));
-    model.feature2codebookintegral = @(p,f)(feature2codebookintegral(p,f,model));
+    model.feature2codebook = @(p,f)(feature2codebook(model, p,f));
+    model.feature2codebookintegral = @(p,f)(feature2codebookintegral(model, p,f));
 end
 
 function codebook = feature2codebook(model, params, feature)
