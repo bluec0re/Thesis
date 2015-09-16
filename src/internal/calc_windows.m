@@ -30,7 +30,7 @@ function windows_bb = calc_windows( w, h, cbw, cbh, I )
         fig = 1;
     end
 
-    fprintf('Calculating windows...');
+    info('Calculating windows...', false);
     tic;
 
     windows_bb = [];
@@ -59,7 +59,7 @@ function windows_bb = calc_windows( w, h, cbw, cbh, I )
         end
     end
     sec = toc;
-    fprintf('DONE in %f sec. %d total windows\n', sec, size(windows_bb, 1));
+    succ('DONE in %f sec. %d total windows', sec, size(windows_bb, 1), false, true);
 
 
     if debug

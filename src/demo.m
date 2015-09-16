@@ -20,6 +20,7 @@ function demo(train, varargin)
     params = get_default_configuration;
     keywords = parse_keywords(varargin, fieldnames(params));
     params = merge_structs(params, keywords);
+    params.default_bounding_box = params.get_bounding_box(params);
     if exist('scale_factor', 'var')
          params.integrals_scale_factor = scale_factor; % save only 3 of 4 entries
     end
@@ -32,8 +33,9 @@ function demo(train, varargin)
     if exist('scale_count', 'var')
         params.codebook_scales_count = scale_count;
     end
+    set_log_level('debug');
     % print params
-    params
+    debg('Params:\n%s', struct2str(params));
 
     params = profile_start(params);
 
@@ -44,13 +46,13 @@ function demo(train, varargin)
         params.feature_type = 'full-masked';
         params.stream_name = 'query';
 
-        fprintf('[*] Collecting negative features...\n');
+        info('Collecting negative features...');
         neg_features = prepare_features(params);
 
-        fprintf('[*]Getting negative codebooks...\n');
+        info('Getting negative codebooks...');
         get_codebooks(params, neg_features, cluster_model);
         profile_stop(params);
-        fprintf('[+] DONE\n');
+        succ('DONE');
     else
         cluster_model = generateCluster(params);
         searchInteractive(params, cluster_model);
@@ -211,7 +213,7 @@ function results = searchInteractive(params, cluster_model)
 
         sec = toc(selected_img.total_time);
         txt = sprintf('%s (%f sec)', txt, sec);
-        fprintf('[*] %s\n', txt);
+        info('%s', txt);
 
         if usejava('desktop')
             set(label, 'String', txt);
@@ -256,7 +258,7 @@ function results = searchInteractive(params, cluster_model)
             neg_codebooks = get_codebooks(params, neg_features, cluster_model);
             clear neg_features;
         end
-        
+
         %setStatus('Concating codebooks...');
         neg_codebooks = horzcat(neg_codebooks.I);
     end
@@ -282,7 +284,7 @@ function results = searchInteractive(params, cluster_model)
         if exist(target_dir, 'dir')
             rmdir(target_dir, 's');
         end
-        fprintf('++ Using target dir %s\n', target_dir);
+        debg('++ Using target dir %s', target_dir);
         mkdir(target_dir);
 
         if usejava('desktop')
@@ -323,7 +325,7 @@ function results = searchInteractive(params, cluster_model)
         setStatus('Loading neg model for whitening...');
         profile_log(params);
         if evalin('base', 'exist(''NEG_MODEL'', ''var'');')
-            fprintf('++ Using preloaded negative model\n');
+            debg('++ Using preloaded negative model');
             params.neg_model = evalin('base', 'NEG_MODEL;');
         else
             params.neg_model = get_full_neg_model();
@@ -342,7 +344,7 @@ function results = searchInteractive(params, cluster_model)
             [ query_codebooks.size, query_codebooks.I, ~ ] = calc_codebooks(params, query_integrals, query_file.bbox, params.parts );
             query_codebooks.I = query_codebooks.I';
             query_codebooks.curid = query_file.curid;
-        else            
+        else
             query_features = prepare_features(params, {query_file});
             query_codebooks = get_codebooks(params, query_features, cluster_model);
             clear query_features;
@@ -371,7 +373,7 @@ function results = searchInteractive(params, cluster_model)
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
         setStatus('DONE!');
         profile_stop(params);
-        
+
         if usejava('desktop')
             btn.UserData = results;
             uiresume;
@@ -427,10 +429,10 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 
         target_dir = get_target_dir(params, model.curid);
 
-        fprintf('Classifying patches...');
+        info('Classifying patches...');
         tmp = tic;
         scores = model.classify(params, model, codebooks);
-        fprintf('DONE in %f sec\n', toc(tmp));
+        succ('DONE in %f sec', toc(tmp));
         if params.use_calibration
             scores = adjust_scores(params, fit_params, scores);
 
@@ -438,7 +440,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
         else
             matches = true([1 length(scores)]);
         end
-        fprintf('Found matches for %s: %d\n', model.curid, sum(matches));
+        info('Found matches for %s: %d', model.curid, sum(matches));
         scores = scores(matches);
         mimg = images(matches);
         umimg = unique(mimg);
@@ -461,7 +463,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
             ioscores = scores(image_only, :);
 
             [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
-            fprintf('Reduced %d patches to %d\n', length(image_only), size(iobbs, 1));
+            info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
             for pi=1:length(ioscores)
                 si = image_only(idx(pi));
                 I = get_image(params, database(image).curid);
@@ -586,11 +588,11 @@ function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, gro
         [scores, idx] = sort(scores, 'descend');
         matching = matching(idx);
         zero = find(~matching, 1);
-        fprintf('First zero: %d (%f)\n', zero, scores(zero));
+        debg('First zero: %d (%f)', zero, scores(zero));
         nonzero = find(matching, 1, 'last');
-        fprintf('Last non-zero: %d (%f)\n', nonzero, scores(nonzero));
+        debg('Last non-zero: %d (%f)', nonzero, scores(nonzero));
         remaining_scores = scores(matching);
-        fprintf('Min: %f Mean: %f Max: %f\n', min(remaining_scores), mean(remaining_scores), max(remaining_scores));
+        debg('Min: %f Mean: %f Max: %f', min(remaining_scores), mean(remaining_scores), max(remaining_scores));
     end
 end
 
@@ -636,10 +638,10 @@ function features = prepare_features(params, query_stream_set)
         features = whiten_features(params, []);
         if isempty(features)
             features = get_features_from_stream(params, query_stream_set);
-            fprintf('[*] Whitening features...\n');
+            info('Whitening features...');
             features = whiten_features(params, features);
         end
-        fprintf('[*] Filtering features...\n');
+        info('Filtering features...');
         features = filter_features(params, features);
     end
 end
@@ -656,7 +658,7 @@ function target_dir = get_target_dir(params, curid)
     else
         calib_type = 'uncalibrated';
     end
-    
+
     if params.query_from_integral
         query_src = 'integral';
     else

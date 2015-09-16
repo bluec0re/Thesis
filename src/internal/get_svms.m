@@ -32,7 +32,7 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
                      basedir, params.clusters, params.parts,...
                      params.class, params.stream_name, params.stream_max,...
                      params.features_per_roi);
-                 
+
     if params.stream_max == 1
         cachename = strrep(cachename, '.mat', ['-' query_codebooks(1).curid '.mat']);
     end
@@ -51,8 +51,8 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
     if size(neg_codebooks, 1) < size(neg_codebooks, 2)
         neg_codebooks = neg_codebooks';
     end
-    
-    fprintf(' Using %d negative samples\n', size(neg_codebooks, 1));
+
+    info('Using %d negative samples', size(neg_codebooks, 1));
 
     svm_models = alloc_struct_array(length(query_codebooks), 'model', 'curid', 'codebook', 'cb_size');
     wpos = params.esvm_default_params.train_positives_constant;

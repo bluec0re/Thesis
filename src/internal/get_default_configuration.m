@@ -26,6 +26,7 @@ function params = get_default_configuration()
     params.query_from_integral = false;
     params.default_query_file = '2008_000615';
     params.default_query_file = '2008_001566';
+    params.default_query_file = '2008_004363';
     params.default_bounding_box = [];
     params.use_libsvm_classification = true;
 
@@ -37,17 +38,22 @@ function params = get_default_configuration()
     params.dataset = esvm_get_voc_dataset(dataset_directory,...
                                           data_directory,...
                                           results_directory);
-                                      
+
     % custom image sets
     params.dataset.clsimgsetpath = 'data/%s_%s.txt';
     params.dataset.imgsetpath = 'data/%s.txt';
-    
+
+    params.default_bounding_box = get_bounding_box(params);
+    params.get_bounding_box = @get_bounding_box;
+end
+
+function bbox = get_bounding_box(params)
     try
         rec = PASreadrecord(sprintf(params.dataset.annopath, params.default_query_file));
         for obj = rec.objects
             if strcmp(obj.class, params.class)
                 initbb = obj.bbox;
-                params.default_bounding_box = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
+                bbox = [initbb(1:2), initbb(3:4) - initbb(1:2) + 1];
                 break;
             end
         end

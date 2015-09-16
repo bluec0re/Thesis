@@ -16,7 +16,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 %       images - A 1xN dimensional index vector for assigning codebooks to images
 
     profile_log(params);
-    fprintf('Calculating codebooks...\n');
+    info('Calculating codebooks...');
     start = tic;
 
     [expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, NUM_PARTS);
@@ -34,16 +34,16 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
             scale_factor = 1;
         end
 
-        fprintf('-- [%4d/%04d] Calc codebooks for %s...', fi, length(database), filename);
+        debg('-- [%4d/%04d] Calc codebooks for %s...', fi, length(database), filename, false);
         tmp = tic;
         s = size(database(fi).I);
         codebooksImg = reshape(database(fi).I, s(2:end));
         w = size(codebooksImg, 2);
         h = size(codebooksImg, 3);
-        
+
         % adjust bounding boxes
         adjusted_windows_bb = windows_bb * scale_factor;
-        
+
         imgWindowsBB = adjusted_windows_bb(adjusted_windows_bb(:, 1) < w & adjusted_windows_bb(:, 2) < h, :);
         imgWindowsBB(:, 3) = min(imgWindowsBB(:, 3), w);
         imgWindowsBB(:, 4) = min(imgWindowsBB(:, 4), h);
@@ -68,6 +68,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         codebooks2(~valid_codebooks, :) = [];
 
         if isempty(codebooks2)
+            err('No codebooks for %s?\n', filename);
             error('No codebooks for %s?\n', filename);
         end
 
@@ -77,14 +78,14 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         images(lastIdx:lastIdx+size(codebooks2, 1)-1) = ones([1 size(codebooks2, 1)]) * fi;
         lastIdx = lastIdx+size(codebooks2, 1);
         sec = toc(tmp);
-        fprintf('DONE in %f sec\n', sec);
+        debg('DONE in %f sec', sec, false, true);
     end
     bboxes(images == 0, :) = [];
     codebooks(images == 0, :) = [];
     images(images == 0) = [];
 
     sec = toc(start);
-    fprintf('DONE in %f sec\n', sec);
+    succ('DONE in %f sec', sec);
 end
 
 function [expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, NUM_PARTS)

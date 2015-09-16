@@ -31,17 +31,13 @@ function model = get_cluster( params, features )
                      params.stream_name, params.stream_max);
 
     if CACHE_FILE && fileexists(cachename)
-        fprintf(1,'Loading %s...',cachename);
-        start = tic;
-        model = load(cachename);
-        sec = toc(start);
-        fprintf(1, '%f sec\n', sec);
+        model = load_ex(cachename);
         model.feature2codebook = @(p,f,varargin)(feature2codebook(model, p, f, varargin{:}));
         model.feature2codebookintegral = @(p,f,varargin)(feature2codebookintegral(model, p, f, varargin{:}));
         fprintf(1,'get_cluster: length of stream=%05d\n', length(features));
         return;
     end
-    
+
     if isempty(features)
         model = [];
         return;
@@ -51,10 +47,10 @@ function model = get_cluster( params, features )
     tmp = tic;
     % struct array -> concat of field X
     features = single(vertcat(features.X))';
-    fprintf('Clustering %d features...', size(features, 2));
+    info('Clustering %d features...', size(features, 2));
     model.centroids = yael_kmeans(features, params.clusters)';
     sec = toc(tmp);
-    fprintf('DONE in %f sec\n', sec);
+    succ('DONE in %f sec', sec);
 
     if CACHE_FILE == 1
         save(cachename, '-struct', 'model');
@@ -89,7 +85,7 @@ function codebook = feature2codebook(model, params, feature)
         bbs = round(feature.bbs);
         X = feature.X;
         window2feature = feature.window2feature;
-        
+
         if ~exist('current_scales', 'var')
             current_scales = [];
         end
@@ -98,7 +94,7 @@ function codebook = feature2codebook(model, params, feature)
             roi_size = feature.area([3 4]) - feature.area([1 2]) + 1;
             current_scales = get_current_scales_by_size(params, unique_scales, scale_sizes, roi_size);
         end
-        
+
         if ~isempty(current_scales)
             current_scales = filter_feature_by_scale(current_scales, feature);
             X = X(current_scales, :);
@@ -108,7 +104,7 @@ function codebook = feature2codebook(model, params, feature)
                 window2feature{wi} = wf(current_scales, :);
             end
         end
-        fprintf('Searching clusters with %d features...', size(X, 1));
+        info('Searching clusters with %d features...', size(X, 1));
         [assignments, distances] = knnsearch(model.centroids, single(X));
         emptyWindows = 0;
         for win=1:length(window2feature)
@@ -153,8 +149,10 @@ function codebook = feature2codebook(model, params, feature)
         profile_log(params);
 
         sec = toc(tmp);
-        fprintf('DONE in %f sec\n', sec);
-        fprintf('%d out of %d windows were empty!\n', emptyWindows, length(window2feature));
+        succ('DONE in %f sec', sec);
+        if emptyWindows > 0
+            warn('%d out of %d windows were empty!', emptyWindows, length(window2feature));
+        end
     end
 end
 
@@ -190,16 +188,17 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
         for si=1:params.codebook_scales_count
             current_scales = get_current_scales_by_index(si, unique_scales, scale_sizes);
             scales{si} = current_scales;
-            
+
             current_scales = filter_feature_by_scale(current_scales, feature);
             Y = feature.X(current_scales, :);
-            fprintf('Searching clusters @ scale %d with %d features...', si, size(Y, 1));
+            info('Searching clusters @ scale %d with %d features...', si, size(Y, 1));
             tmp = tic;
             [IDX, D] = knnsearch(model.centroids, single(Y));
             sec = toc(tmp);
-            fprintf('DONE in %fs\nFound %d unique clusters\n', sec, size(unique(IDX), 1));
+            succ('DONE in %fs', sec);
+            debg('Found %d unique cluster', size(unique(IDX), 1));
 
-            fprintf('Building codebooks...');
+            info('Building codebooks...');
             tmp = tic;
             x2 = x(current_scales);
             y2 = y(current_scales);
@@ -207,11 +206,10 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
                 codebook(si, IDX(i), x2(i), y2(i)) = codebook(si, IDX(i), x2(i), y2(i)) + 1 / D(i);
             end
             sec = toc(tmp);
-            fprintf('DONE in %fs\n', sec);
+            succ('DONE in %fs', sec);
         end
         codebook = cumsum(codebook, 3);
         codebook = cumsum(codebook, 4);
     end
     profile_log(params);
 end
-

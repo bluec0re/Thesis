@@ -57,7 +57,7 @@ function features = get_features_from_stream( params, stream )
                                       'area');
 
     for streamid=1:length(stream)
-        fprintf('image %04d/%04d...', streamid, length(stream));
+        debg('image %04d/%04d...', streamid, length(stream));
         model = stream{streamid};
 
         if strcmp(type, 'full') % no difference in objects
@@ -130,14 +130,13 @@ function features = get_features_from_stream( params, stream )
         end
 
         features(streamid) = feature;
-        fprintf('\n');
     end
 
     % search duplicates
     if strcmp(type, 'full')
         ids = {features.curid};
         [~, unique_features] = unique(ids);
-        fprintf(' Removed %d duplicates\n', length(features) - size(unique_features, 1));
+        warn('Removed %d duplicates', length(features) - size(unique_features, 1));
         features = features(unique_features);
     end
 

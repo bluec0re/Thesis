@@ -59,7 +59,7 @@ function features = whiten_features( params, features )
         if ~isempty(feature.X)
             X = feature.X;
             G = feature.M;
-            fprintf('image %04d/%04d...', fid, length(features));
+            debg('image %04d/%04d...', fid, length(features));
             fmask = false([12 12 31]);
             fmask(1:5, 1:5, :) = true;
             covHog = neg_model.cov_hog(fmask(:), fmask(:));
@@ -78,7 +78,6 @@ function features = whiten_features( params, features )
 
             features(fid).distVec = distVec;
         end
-        fprintf('\n');
     end
     profile_log(params);
 

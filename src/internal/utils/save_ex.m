@@ -16,7 +16,7 @@ function save_ex( varargin )
     end
 
     [serialize, varargin] = should_serialize(varargin);
-    fprintf(' Serializing...');
+    debg('Serializing...', false);
     tmp = tic;
     for ai=2:length(varargin)
         arg = varargin{ai};
@@ -30,12 +30,12 @@ function save_ex( varargin )
         end
     end
     sec = toc(tmp);
-    fprintf('%f sec. Saving %s...', sec, filepath);
+    debg('%f sec. Saving %s...', sec, filepath, false, false);
 
     tmp = tic;
     save(varargin{:});
     sec = toc(tmp);
-    fprintf('DONE in %f sec\n', sec);
+    debg('DONE in %f sec', sec, false, true);
 end
 
 function [serialize, new_args] = should_serialize(args)

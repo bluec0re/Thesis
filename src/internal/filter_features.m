@@ -44,7 +44,7 @@ function features = filter_features(params, features)
         fprintf(1,'filter_features: length of stream=%05d\n', length(features));
         return;
     end
-    
+
     if isempty(features)
         return;
     end
@@ -56,7 +56,7 @@ function features = filter_features(params, features)
             X = feature.X;
             G = feature.M;
             distVec = feature.distVec;
-            fprintf('image %04d/%04d...', fid, length(features));
+            debg('image %04d/%04d...', fid, length(features));
 
             % delete all features which contain to little texture
             gradientThresh = 25 / 255;
@@ -79,7 +79,6 @@ function features = filter_features(params, features)
                 features(fid).window2feature{wi} = mapping(~deleteFeatureBin);
             end
         end
-        fprintf('\n');
     end
     profile_log(params);
 

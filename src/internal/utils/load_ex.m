@@ -14,13 +14,13 @@ function [out, serialized] = load_ex( varargin )
 %       serialized - optional boolean indicating the load of a serialized var
 
     serialized = false;
-    fprintf(1,'Loading %s...', strrep(varargin{1}, '//', '/'));
+    debg('Loading %s...', strrep(varargin{1}, '//', '/'), false);
     tmp = tic;
     if nargout > 0
         out = load(varargin{:});
         if size(out, 2) == 1 && isa(out, 'uint8')
             sec = toc(tmp);
-            fprintf('%f sec. Deserializing...', sec);
+            debg('%f sec. Deserializing...', sec, false);
             %tmp = tic;
             out = hlp_deserialize(out);
             serialized = true;
@@ -28,7 +28,7 @@ function [out, serialized] = load_ex( varargin )
     else
         vars = load(varargin{:});
         sec = toc(tmp);
-        fprintf('%f sec. Deserializing...', sec);
+        debg('%f sec. Deserializing...', sec, false, false);
         %tmp = tic;
         fields = fieldnames(vars);
         for ai=1:length(fields)
@@ -43,5 +43,5 @@ function [out, serialized] = load_ex( varargin )
         end
     end
     sec = toc(tmp);
-    fprintf('DONE in %f sec\n', sec);
+    debg('DONE in %f sec', sec, false, true);
 end

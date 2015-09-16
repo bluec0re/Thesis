@@ -49,9 +49,9 @@ function codebooks = get_codebooks(params, features, cluster_model)
                      basedir, params.clusters, params.class,...
                      type, params.stream_name, params.stream_max);
     end
-    
+
     if evalin('base', ['exist(''LAST_NEG_CB'', ''var'') && strcmp(LAST_NEG_CB, ''' cachename ''');'])
-        fprintf('++ Using preloaded negative codebooks %s\n', cachename);
+        debg('++ Using preloaded negative codebooks %s', cachename);
         codebooks = evalin('base', 'NEG_CB');
         return;
     end
@@ -63,7 +63,7 @@ function codebooks = get_codebooks(params, features, cluster_model)
         assignin('base', 'LAST_NEG_CB', cachename);
         return;
     end
-    
+
     if isempty(features)
         codebooks = [];
         return;
@@ -106,7 +106,7 @@ function codebooks = get_codebooks(params, features, cluster_model)
     profile_log(params);
 
     if CACHE_FILE && length(codebooks) > 1
-        save_ex(cachename, 'codebooks');        
+        save_ex(cachename, 'codebooks');
         assignin('base', 'NEG_CB', codebooks);
         assignin('base', 'LAST_NEG_CB', cachename);
     end

@@ -32,10 +32,10 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         roi_size = [];
     end
     cachename = get_cache_name(params, roi_size, CACHE_FILE);
-    
+
     % test if file was already loaded
     if evalin('base', ['exist(''LAST_DB'', ''var'') && strcmp(LAST_DB, ''' cachename ''');']);
-        fprintf('++ Using preloaded Database %s\n', cachename);
+        debg('++ Using preloaded Database %s', cachename);
         integrals = evalin('base', 'DB;');
         return;
     elseif params.stream_max > 1
@@ -56,6 +56,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     end
 
     if isempty(features)
+        warn('No features given to get_codebook_integrals and no cache present @ %s', cachename);
         warning('No features given to get_codebook_integrals and no cache present @ %s', cachename);
         integrals = [];
         return;
@@ -110,7 +111,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         [I, scales] = cluster_model.feature2codebookintegral(params, feature);
         if scale_factor < 1 && scale_factor > 0
             deleteEveryN = 1 / (1 - scale_factor);
-            fprintf(' Rescaling: %.3f, deleting every %d\n', scale_factor, deleteEveryN);
+            info(' Rescaling: %.3f, deleting every %d', scale_factor, deleteEveryN);
             % maybe not best method, but works approx
             % >> round(1:(1/(1-0.75)):10)
             % 1     5     9
@@ -155,12 +156,12 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         for si=1:size(orig_integrals, 1)
             integrals = orig_integrals(si, :);
             tmp = max(vertcat(integrals.max_size));
-            save_ex(sprintf(cachename, tmp(1), tmp(2)), 'integrals');                
+            save_ex(sprintf(cachename, tmp(1), tmp(2)), 'integrals');
         end
-        
+
         if ~isempty(roi_size)
             cachename2 = get_cache_name(params, roi_size, CACHE_FILE);
-            
+
             for si=1:size(orig_integrals, 1)
                 integrals = orig_integrals(si, :);
                 tmp = max(vertcat(integrals.max_size));
