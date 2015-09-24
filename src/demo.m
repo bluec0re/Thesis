@@ -350,6 +350,7 @@ function results = searchInteractive(params, cluster_model)
             query_codebooks = get_codebooks(params, query_features, cluster_model);
             clear query_features;
         end
+        debg('Got %d codebooks', length(query_codebooks));
 
         setStatus('Train SVM...');
         params.dataset.localdir = old_params.dataset.localdir;
