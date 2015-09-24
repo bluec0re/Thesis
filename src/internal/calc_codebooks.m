@@ -69,7 +69,8 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 
         if isempty(codebooks2)
             err('No codebooks for %s?\n', filename);
-            error('No codebooks for %s?\n', filename);
+            continue;
+            %error('No codebooks for %s?\n', filename);
         end
 
         codebooks(lastIdx:lastIdx+size(codebooks2, 1)-1,:) = codebooks2;

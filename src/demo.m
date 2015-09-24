@@ -33,6 +33,7 @@ function demo(train, varargin)
     if exist('scale_count', 'var')
         params.codebook_scales_count = scale_count;
     end
+    log_file('demo.log');
     set_log_level('debug');
     % print params
     debg('Params:\n%s', struct2str(params));
@@ -371,6 +372,20 @@ function results = searchInteractive(params, cluster_model)
         end
         setStatus('Searching in database...');
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
+        
+        
+        % remove unnecessary fields
+        cleanparams = params;
+        fields = fieldnames(params);
+        for fi=1:length(fields)
+            field = fields{fi};
+            v = params.(field);
+            if isstruct(v) || isa(v, 'function_handle') || iscell(v)
+                cleanparams = rmfield(cleanparams, field);
+            end
+        end
+        
+        save_ex([target_dir filesep 'results.mat'], 'results', 'cleanparams');
         setStatus('DONE!');
         profile_stop(params);
 
@@ -421,6 +436,17 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
     % save space
     database = rmfield(database, 'I');
+    
+    % expand bounding boxes by 1/2 of patch average
+    if params.expand_bboxes
+        patch_avg = ceil((max(vertcat(database.max_size)) + min(vertcat(database.min_size))) / 2 / 2);
+        patch_avg = repmat(patch_avg, [size(bboxes, 1) 2]);
+        patch_avg = patch_avg .* repmat([-1 -1 1 1], [size(bboxes, 1) 1]);
+        bboxes = bboxes + patch_avg;
+        bboxes(:, [1 3]) = max(1, min(bboxes(:, [1 3]), max_w));
+        bboxes(:, [2 4]) = max(1, min(bboxes(:, [2 4]), max_h));
+    end
+    
     % required for libsvm
     codebooks = double(codebooks);
     results = cell([1 length(svm_models)]);
@@ -428,7 +454,6 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
         model = svm_models(mi);
 
         target_dir = get_target_dir(params, model.curid);
-
         info('Classifying patches...');
         tmp = tic;
         scores = model.classify(params, model, codebooks);
@@ -458,21 +483,28 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
             image = umimg(ii);
 
             image_only = find(mimg == image);
+            I = get_image(params, database(image).curid);
+            imax_w = size(I, 2);
+            imax_h = size(I, 1);
             iobbs = mbbs(image_only, :);
+            
+            iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
+            iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
+            
             iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
             ioscores = scores(image_only, :);
+            
 
             [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
             info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
             for pi=1:length(ioscores)
                 si = image_only(idx(pi));
-                I = get_image(params, database(image).curid);
                 bbs = iobbs(pi, :);
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
-                I = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
 
                 filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
-                imwrite(I, filename);
+                imwrite(I2, filename);
 
                 result(si).query_curid = model.curid;
                 result(si).curid = database(image).curid;
@@ -501,6 +533,8 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 %             result(si).patch = patchnrs(mimg(si));
 %             result(si).score = scores(si);
 %         end
+        % remove all empty results
+        result = result(~cellfun(@isempty, {result.curid}));
         results{mi} = result;
     end
 end
@@ -665,6 +699,12 @@ function target_dir = get_target_dir(params, curid)
         query_src = 'raw';
     end
 
+    if params.expand_bboxes
+        expand_bbs = 'expanded';
+    else
+        expand_bbs = 'nonexpanded';
+    end
+    
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
                 filesep num2str(params.clusters) '-Cluster'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...
@@ -673,5 +713,6 @@ function target_dir = get_target_dir(params, curid)
                 num2str(params.codebook_scales_count) '-NumScales' filesep...
                 'nonmax-' nonmax_type filesep calib_type filesep...
                 num2str(params.features_per_roi) '-featPerRoi' filesep...
-                'querysrc-' query_src filesep curid];
+                'querysrc-' query_src filesep expand_bbs '-bbs' filesep...
+                curid];
 end

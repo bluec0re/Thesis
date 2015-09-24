@@ -22,7 +22,7 @@ function log_msg(newfmt, fmt, varargin)
     fprintf(1, fmt, varargin{:});
 
     try
-        fp = fopen('logfile.txt', 'a');
+        fp = fopen(log_file(), 'a');
         fprintf(fp, fmt, varargin{:});
         fclose(fp);
     catch

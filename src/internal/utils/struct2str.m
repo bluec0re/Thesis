@@ -17,8 +17,12 @@ function str = struct2str(in, recursive)
         field = fields{fi};
         str = sprintf(fmt, str, field);
         value = in.(field);
-        if isstruct(value) && recursive
-            value = sprintf('\n%s', struct2str(value, varlen));
+        if isstruct(value)
+            if ~recursive
+                value = sprintf('struct(%s)', strjoin(arrayfun(@(v)num2str(v), size(value), 'UniformOutput', false), 'x'));
+            else
+                value = sprintf('\n%s', struct2str(value, varlen));
+            end
         elseif isnumeric(value)
             l = length(value);
             if l < 5
@@ -37,7 +41,9 @@ function str = struct2str(in, recursive)
                 value = 'false';
             end
         elseif iscell(value)
-            value = sprintf('{%s}', strjoin(arrayfun(@(v)num2str(v), size(a), 'UniformOutput', false), 'x'));
+            value = sprintf('{%s}', strjoin(arrayfun(@(v)num2str(v), size(value), 'UniformOutput', false), 'x'));
+        elseif ischar(value)
+            value = sprintf('''%s''', value);
         else
             value = class(value);
         end
