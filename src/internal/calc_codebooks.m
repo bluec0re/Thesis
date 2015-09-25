@@ -36,10 +36,9 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 
         debg('-- [%4d/%04d] Calc codebooks for %s...', fi, length(database), filename, false);
         tmp = tic;
-        s = size(database(fi).I);
-        codebooksImg = reshape(database(fi).I, s(2:end));
-        w = size(codebooksImg, 2);
-        h = size(codebooksImg, 3);
+        s = database(fi).I_size;
+        w = s(3);
+        h = s(4);
 
         % adjust bounding boxes
         adjusted_windows_bb = windows_bb * scale_factor;
@@ -50,7 +49,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 
 
         % codebook x scales x amount
-        codebooks3 = getCodebooksFromIntegral(params, codebooksImg, imgWindowsBB, NUM_PARTS);
+        codebooks3 = getCodebooksFromIntegral(params, database(fi), imgWindowsBB, NUM_PARTS);
         [cbdim, scales, cbnum] = size(codebooks3);
         % amount * scales x codebook
         codebooks2 = zeros([cbnum * scales, cbdim]);
@@ -108,11 +107,11 @@ function [expectedCodebookCount, codebookSize] = expectedCodebooks(database, win
     expectedCodebookCount = 0;
     codebookSize = 0;
     for fi=1:length(database)
-        codebooksImg = database(fi).I;
-        w = size(codebooksImg, 3);
-        h = size(codebooksImg, 4);
+        w = database(fi).I_size(3);
+        h = database(fi).I_size(4);
+
         wincnt = sum(windows_bb(:, 1) < w & windows_bb(:, 2) < h);
         expectedCodebookCount = expectedCodebookCount + wincnt;
-        codebookSize = size(codebooksImg, 2) * NUM_PARTS;
+        codebookSize = database(fi).I_size(2) * NUM_PARTS;
     end
 end

@@ -30,6 +30,7 @@ function params = get_default_configuration()
     params.default_bounding_box = [];
     params.use_libsvm_classification = true;
     params.expand_bboxes = true;
+    params.naiive_integral_backend = true;
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;

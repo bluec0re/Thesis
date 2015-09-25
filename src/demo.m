@@ -359,8 +359,8 @@ function results = searchInteractive(params, cluster_model)
         end
         setStatus('Searching in database...');
         results = searchDatabase(old_params, database, svm_models, fit_params, pos);
-        
-        
+
+
         % remove unnecessary fields
         cleanparams = params;
         fields = fieldnames(params);
@@ -371,7 +371,7 @@ function results = searchInteractive(params, cluster_model)
                 cleanparams = rmfield(cleanparams, field);
             end
         end
-        
+
         save_ex([target_dir filesep 'results.mat'], 'results', 'cleanparams');
         setStatus('DONE!');
         profile_stop(params);
@@ -410,7 +410,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 %   Output:
 %       results - Cell array of results. Fields: curid, img, patch, score
     profile_log(params);
-    sizes = cellfun(@(I) size(I), {database.I}, 'UniformOutput', false);
+    sizes = {database.I_size};
     sizes = cell2mat(vertcat(sizes(:)));
     scale_factors = {database.scale_factor};
     scale_factors = cell2mat(vertcat(scale_factors(:)));
@@ -423,7 +423,9 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
     % save space
     database = rmfield(database, 'I');
-    
+    database = rmfield(database, 'coords');
+    database = rmfield(database, 'scores');
+
     % expand bounding boxes by 1/2 of patch average
     if params.expand_bboxes
         patch_avg = ceil((max(vertcat(database.max_size)) + min(vertcat(database.min_size))) / 2 / 2);
@@ -433,7 +435,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
         bboxes(:, [1 3]) = max(1, min(bboxes(:, [1 3]), max_w));
         bboxes(:, [2 4]) = max(1, min(bboxes(:, [2 4]), max_h));
     end
-    
+
     % required for libsvm
     codebooks = double(codebooks);
     results = cell([1 length(svm_models)]);
@@ -464,7 +466,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
         result = struct;
         if ~isempty(scores)
             result = alloc_struct_array(length(scores), 'curid', 'query_curid', 'img', 'patch', 'score', 'bbox', 'filename');
-            result(length(scores)).query_curid = model.curid;            
+            result(length(scores)).query_curid = model.curid;
         end
 
         for ii=1:length(umimg)
@@ -475,13 +477,13 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
             imax_w = size(I, 2);
             imax_h = size(I, 1);
             iobbs = mbbs(image_only, :);
-            
+
             iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
             iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
-            
+
             iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
             ioscores = scores(image_only, :);
-            
+
 
             [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
             info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
@@ -646,7 +648,7 @@ function target_dir = get_target_dir(params, curid)
     else
         expand_bbs = 'nonexpanded';
     end
-    
+
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
                 filesep num2str(params.clusters) '-Cluster'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...

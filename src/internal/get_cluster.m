@@ -33,7 +33,11 @@ function model = get_cluster( params, features )
     if CACHE_FILE && fileexists(cachename)
         model = load_ex(cachename);
         model.feature2codebook = @(p,f,varargin)(feature2codebook(model, p, f, varargin{:}));
-        model.feature2codebookintegral = @(p,f,varargin)(feature2codebookintegral(model, p, f, varargin{:}));
+        if params.naiive_integral_backend
+            model.feature2codebookintegral = @(p,f,varargin)(feature2codebookintegral_naiive(model, p, f, varargin{:}));
+        else
+            model.feature2codebookintegral = @(p,f,varargin)(feature2codebookintegral(model, p, f, varargin{:}));
+        end
         fprintf(1,'get_cluster: length of stream=%05d\n', length(features));
         return;
     end
@@ -58,7 +62,11 @@ function model = get_cluster( params, features )
 
     % prevent saving of function handles
     model.feature2codebook = @(p,f)(feature2codebook(model, p,f));
-    model.feature2codebookintegral = @(p,f)(feature2codebookintegral(model, p,f));
+    if params.naiive_integral_backend
+        model.feature2codebookintegral = @(p,f)(feature2codebookintegral_naiive(model, p,f));
+    else
+        model.feature2codebookintegral = @(p,f)(feature2codebookintegral(model, p,f));
+    end
 end
 
 function codebook = feature2codebook(model, params, feature)
@@ -156,9 +164,7 @@ function codebook = feature2codebook(model, params, feature)
     end
 end
 
-
-
-function [codebook, scales] = feature2codebookintegral(model, params, feature)
+function [codebook, scales] = feature2codebookintegral_naiive(model, params, feature)
 %FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
 %
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
@@ -210,6 +216,65 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
         end
         codebook = cumsum(codebook, 3);
         codebook = cumsum(codebook, 4);
+    end
+    profile_log(params);
+end
+
+function [codebook, scales] = feature2codebookintegral(model, params, feature)
+%FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
+%
+%   Syntax:     codebook = feature2codebookintegral(params, feature, model)
+%
+%   Input:
+%       params - The configuration struct. Required fields: codebook_type, profile (if profiling is required)
+%       feature - The feature struct. Required fields: X, bbs, I_size, scales
+%       model - The cluster model. Required fields: centroids
+%
+%   Output:
+%       codebook - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
+%       scales - A Cell of size S containing the associated scales.
+
+    profile_log(params);
+
+    codebook = zeros([params.codebook_scales_count size(model.centroids, 1) feature.I_size(2) feature.I_size(1)]);
+    scales = cell([1 params.codebook_scales_count]);
+    if strcmp(params.codebook_type, 'single')
+        codebook = single(codebook);
+    end
+
+    if ~isempty(feature.X)
+        bbs = round(feature.bbs);
+        x = round((bbs(:, 1) + bbs(:, 3)) / 2);
+        y = round((bbs(:, 2) + bbs(:, 4)) / 2);
+        [unique_scales, scale_sizes] = get_available_scales(params, feature);
+        for si=1:params.codebook_scales_count
+            current_scales = get_current_scales_by_index(si, unique_scales, scale_sizes);
+            scales{si} = current_scales;
+
+            current_scales = filter_feature_by_scale(current_scales, feature);
+            Y = feature.X(current_scales, :);
+            info('Searching clusters @ scale %d with %d features...', si, size(Y, 1));
+            tmp = tic;
+            [IDX, D] = knnsearch(model.centroids, single(Y));
+            sec = toc(tmp);
+            succ('DONE in %fs', sec);
+            debg('Found %d unique cluster', size(unique(IDX), 1));
+
+            info('Building codebooks...');
+            tmp = tic;
+            x2 = x(current_scales);
+            y2 = y(current_scales);
+            for i=1:size(IDX, 1)
+                codebook(si, IDX(i), x2(i), y2(i)) = codebook(si, IDX(i), x2(i), y2(i)) + 1 / D(i);
+            end
+            sec = toc(tmp);
+            succ('DONE in %fs', sec);
+        end
+        unchanged = iszero(codebook);
+        codebook = cumsum(codebook, 3);
+        codebook = cumsum(codebook, 4);
+        codebook(unchanged) = 0;
+        codebook = sparse(codebook);
     end
     profile_log(params);
 end

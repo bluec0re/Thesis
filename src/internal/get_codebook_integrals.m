@@ -47,6 +47,10 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         if ~isfield(integrals, 'scale_factor')
             [integrals.scale_factor] = deal(1);
         end
+        if ~isfield(integrals, 'I_size')
+            sizes = cellfun(@size, {integrals.I});
+            [integrals.scale_factor] = deal(sizes);
+        end
         if params.stream_max > 1
             assignin('base', 'LAST_DB', cachename);
             assignin('base', 'DB', integrals);
@@ -66,7 +70,8 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     if ~isempty(roi_size) && params.stream_max == 1
         integral_count = 1;
     end
-    integrals = alloc_struct_array({integral_count, length(features)}, 'I', 'curid', 'scale_factor', 'max_size', 'min_size');
+
+    integrals = alloc_struct_array({integral_count, length(features)}, 'I', 'I_size', 'curid', 'scale_factor', 'max_size', 'min_size', 'coords', 'scores');
     for fi=1:length(features)
         feature = features(fi);
 
@@ -101,6 +106,9 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                     if ~isfield(integral, 'min_size')
                         integral.min_size = min(bbs(:, [3 4]));
                     end
+                    if ~isfield(integral, 'I_size')
+                        integral.I_size = size(integral.I);
+                    end
                     integrals(ci, fi) = integral;
                 end
 
@@ -128,7 +136,19 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         end
 
         for si=1:length(scales)
-            integrals(si, fi).I = I(si, :, :, :);
+            I2 = I(si, :, :, :);
+            Is = size(I2);
+            integrals(si, fi).I_size = Is;
+            if params.naiive_integral_backend
+                integrals(si, fi).I = I2;
+            else
+                remaining = ~iszero(I2);
+                [cb, x, y] = ind2sub(Is(2:end), find(remaining));
+                coords = [cb, x, y];
+                integrals(si, fi).coords = coords;
+                I2 = I2(remaining);
+                integrals(si, fi).scores = I2(:);
+            end
             integrals(si, fi).curid = feature.curid;
             integrals(si, fi).scale_factor = scale_factor;
             %bbs = feature.bbs(ismember(feature.scales, scales{si}), :);
@@ -187,7 +207,13 @@ function basedir = get_cache_basedir(params, create_dir)
 %   Output:
 %       basedir - The cache dir
 
-    basedir = sprintf('%s/models/codebooks/integral/', params.dataset.localdir);
+    if params.naiive_integral_backend
+        naiive = 'naiive';
+    else
+        naiive = 'sparse';
+    end
+
+    basedir = sprintf('%s/models/codebooks/integral/%s/', params.dataset.localdir, naiive);
     if create_dir && ~exist(basedir,'dir')
         mkdir(basedir);
     end

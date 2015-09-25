@@ -18,55 +18,129 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
     %codebooks = fast(integralImg, bboxes, NUM_PARTS);
     %return;
 
-    iis = size(integralImg);
-    if size(iis, 2) == 3
-        features = iis(1);
-        scales = 1;
-        iis = [1 iis];
-        integralImg = reshape(integralImg, iis);
-    else
-        scales = iis(1);
-        features = iis(2);
-    end
-    codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
-    %secs = zeros([1 size(bboxes, 1)]);
-    for bid=1:size(bboxes, 1)
-        tmp = tic;
-        bb = bboxes(bid, :);
-        xmin = bb(1);
-        ymin = bb(2);
-        xmax = bb(3);
-        ymax = bb(4);
-        [xsteps, ysteps] = getParts(xmin, ymin, xmax, ymax, NUM_PARTS);
+    if params.naiive_integral_backend
+        %integralImg = reshape(integralImg.I, integralImg.I_size(2:end));
+        integralImg = integralImg.I;
 
-        codebook = zeros([features, scales, NUM_PARTS]);
-        % TODO: Bug -> make coords linear
-%         x1 = round(xmin + xsteps(1, :));
-%         x2 = round(xmin + xsteps(2, :));
-%         y1 = round(ymin + ysteps(1, :));
-%         y2 = round(ymin + ysteps(2, :));
-%         a = integralImg(:, x1, y1);
-%         b = integralImg(:, x2, y1);
-%         c = integralImg(:, x1, y2);
-%         d = integralImg(:, x2, y2);
-%         codebook = (a+d) - (b+c);
-
-        %secs(bid) = toc(tmp);
-
-        for si=1:scales
-            for part=1:NUM_PARTS
-               x1 = round(xmin + xsteps(1, part));
-               x2 = round(xmin + xsteps(2, part));
-               y1 = round(ymin + ysteps(1, part));
-               y2 = round(ymin + ysteps(2, part));
-               a = integralImg(si, :, x1, y1);
-               b = integralImg(si, :, x2, y1);
-               c = integralImg(si, :, x1, y2);
-               d = integralImg(si, :, x2, y2);
-               codebook(:, si, part) = (a+d) - (b+c);
-            end
+        iis = size(integralImg);
+        if size(iis, 2) == 3
+            features = iis(1);
+            scales = 1;
+            iis = [1 iis];
+            integralImg = reshape(integralImg, iis);
+        else
+            scales = iis(1);
+            features = iis(2);
         end
-        codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);
+        codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
+        %secs = zeros([1 size(bboxes, 1)]);
+        for bid=1:size(bboxes, 1)
+            tmp = tic;
+            bb = bboxes(bid, :);
+            xmin = bb(1);
+            ymin = bb(2);
+            xmax = bb(3);
+            ymax = bb(4);
+            [xsteps, ysteps] = getParts(xmin, ymin, xmax, ymax, NUM_PARTS);
+
+            codebook = zeros([features, scales, NUM_PARTS]);
+            % TODO: Bug -> make coords linear
+    %         x1 = round(xmin + xsteps(1, :));
+    %         x2 = round(xmin + xsteps(2, :));
+    %         y1 = round(ymin + ysteps(1, :));
+    %         y2 = round(ymin + ysteps(2, :));
+    %         a = integralImg(:, x1, y1);
+    %         b = integralImg(:, x2, y1);
+    %         c = integralImg(:, x1, y2);
+    %         d = integralImg(:, x2, y2);
+    %         codebook = (a+d) - (b+c);
+
+            %secs(bid) = toc(tmp);
+
+            for si=1:scales
+                for part=1:NUM_PARTS
+                   x1 = round(xmin + xsteps(1, part));
+                   x2 = round(xmin + xsteps(2, part));
+                   y1 = round(ymin + ysteps(1, part));
+                   y2 = round(ymin + ysteps(2, part));
+
+                   %    A--B
+                   %    |  |
+                   %    C--D
+                   a = integralImg(si, :, x1, y1);
+                   b = integralImg(si, :, x2, y1);
+                   c = integralImg(si, :, x1, y2);
+                   d = integralImg(si, :, x2, y2);
+                   codebook(:, si, part) = (a+d) - (b+c);
+                end
+            end
+            codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);
+        end
+    else
+
+        iis = integralImg.I_size;
+        if size(iis, 2) == 3 % never happens atm
+            features = iis(1);
+            scales = 1;
+            iis = [1 iis];
+            integralImg = reshape(integralImg, iis);
+        else
+            scales = iis(1);
+            features = iis(2);
+        end
+        codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
+        %secs = zeros([1 size(bboxes, 1)]);
+        for bid=1:size(bboxes, 1)
+            tmp = tic;
+            bb = bboxes(bid, :);
+            xmin = bb(1);
+            ymin = bb(2);
+            xmax = bb(3);
+            ymax = bb(4);
+            [xsteps, ysteps] = getParts(xmin, ymin, xmax, ymax, NUM_PARTS);
+
+            codebook = zeros([features, scales, NUM_PARTS]);
+
+            for si=1:scales
+                for part=1:NUM_PARTS
+                   x1 = round(xmin + xsteps(1, part));
+                   x2 = round(xmin + xsteps(2, part));
+                   y1 = round(ymin + ysteps(1, part));
+                   y2 = round(ymin + ysteps(2, part));
+
+                   %    A--B
+                   %    |  |
+                   %    C--D
+                   keyboard;
+                   a = integralImg.coords(2, :) <= x1 & integralImg.coords(3, :) <= y1;
+                   last = find(a, 1, 'last');
+                   a = a & integralImg.coords(2, :) == integralImg.coords(2, last);
+                   a = a & integralImg.coords(3, :) == integralImg.coords(3, last);
+                   a = integralImg.scores(a);
+
+                   b = integralImg.coords(2, :) <= x2 & integralImg.coords(3, :) <= y1;
+                   last = find(b, 1, 'last');
+                   b = b & integralImg.coords(2, :) == integralImg.coords(2, last);
+                   b = b & integralImg.coords(3, :) == integralImg.coords(3, last);
+                   b = integralImg.scores(b);
+
+                   c = integralImg.coords(2, :) <= x1 & integralImg.coords(3, :) <= y2;
+                   last = find(c, 1, 'last');
+                   c = c & integralImg.coords(2, :) == integralImg.coords(2, last);
+                   c = c & integralImg.coords(3, :) == integralImg.coords(3, last);
+                   c = integralImg.scores(c);
+
+                   d = integralImg.coords(2, :) <= x2 & integralImg.coords(3, :) <= y2;
+                   last = find(d, 1, 'last');
+                   d = d & integralImg.coords(2, :) == integralImg.coords(2, last);
+                   d = d & integralImg.coords(3, :) == integralImg.coords(3, last);
+                   d = integralImg.scores(d);
+
+                   codebook(:, si, part) = (a+d) - (b+c);
+                end
+            end
+            codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);
+        end
     end
     %mean(secs)
     profile_log(params);
