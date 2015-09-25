@@ -335,21 +335,7 @@ function results = searchInteractive(params, cluster_model)
         profile_log(params);
         setStatus('Filtering query features...');
 
-        if params.query_from_integral
-            query_integrals = get_codebook_integrals(params, [], cluster_model, roi_size);
-            if ~isstruct(query_integrals)
-                query_features = prepare_features(params, {query_file});
-                query_integrals = get_codebook_integrals(params, query_features, cluster_model, roi_size);
-                clear query_features;
-            end
-            [ query_codebooks.size, query_codebooks.I, ~ ] = calc_codebooks(params, query_integrals, query_file.bbox, params.parts );
-            query_codebooks.I = query_codebooks.I';
-            query_codebooks.curid = query_file.curid;
-        else
-            query_features = prepare_features(params, {query_file});
-            query_codebooks = get_codebooks(params, query_features, cluster_model);
-            clear query_features;
-        end
+        query_codebooks = extract_query_codebook( params, cluster_model, query_file, roi_size );
         debg('Got %d codebooks', length(query_codebooks));
 
         setStatus('Train SVM...');
@@ -477,7 +463,8 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
         mbbs = round(mbbs(idx, :));
         result = struct;
         if ~isempty(scores)
-            result(length(scores)).query_curid = model.curid;
+            result = alloc_struct_array(length(scores), 'curid', 'query_curid', 'img', 'patch', 'score', 'bbox', 'filename');
+            result(length(scores)).query_curid = model.curid;            
         end
 
         for ii=1:length(umimg)
@@ -535,8 +522,12 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 %             result(si).score = scores(si);
 %         end
         % remove all empty results
-        result = result(~cellfun(@isempty, {result.curid}));
-        results{mi} = result;
+        if ~isempty(result) && isfield(result, 'curid')
+            result = result(~cellfun(@isempty, {result.curid}));
+            results{mi} = result;
+        else
+            err('No results for %s', model.curid);
+        end
     end
 end
 
@@ -628,56 +619,6 @@ function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, gro
         debg('Last non-zero: %d (%f)', nonzero, scores(nonzero));
         remaining_scores = scores(matching);
         debg('Min: %f Mean: %f Max: %f', min(remaining_scores), mean(remaining_scores), max(remaining_scores));
-    end
-end
-
-function [bbox, scores, idx] = reduce_matches(params, bbox, scores)
-%REDUCE_MATCHES Reduces the amount of detected matches with a non-max suppression
-%
-%   Syntax:     [bbox, scores, idx] = reduce_matches(params, bbox, scores)
-%
-%   Input:
-%       params - Configuration parameters
-%       bbox - Nx4 matrix of bounding boxes [x, y, w, h]
-%       scores - N dimensional vector of scores
-%
-%   Output:
-%       bbox - New bounding boxes
-%       scores - New scores
-%       idx - Mapping between input and output (index vector)
-
-    profile_log(params);
-    if params.nonmax_type_min
-        [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Min');
-    else
-        [bbox, scores, idx] = selectStrongestBbox(bbox, scores, 'RatioType', 'Union');
-    end
-end
-
-function features = prepare_features(params, query_stream_set)
-
-    if ~exist('query_stream_set', 'var')
-        stream_params.stream_set_name = params.stream_name;
-        stream_params.stream_max_ex = params.stream_max;
-        stream_params.must_have_seg = 0;
-        stream_params.must_have_seg_string = '';
-        stream_params.model_type = 'exemplar';
-        stream_params.cls = params.class;
-
-        query_stream_set = esvm_get_pascal_stream_custom(stream_params, ...
-                                              params.dataset);
-    end
-
-    features = filter_features(params, []);
-    if isempty(features)
-        features = whiten_features(params, []);
-        if isempty(features)
-            features = get_features_from_stream(params, query_stream_set);
-            info('Whitening features...');
-            features = whiten_features(params, features);
-        end
-        info('Filtering features...');
-        features = filter_features(params, features);
     end
 end
 

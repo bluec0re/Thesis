@@ -9,7 +9,7 @@ function measure_results(varargin)
     log_file('/dev/null');
     log_level('debug');
 
-    if false
+    if true
         groundTruth = getDatabase(params);
         measureExemplar(params, groundTruth);
         measures = measureMy(params, groundTruth);
@@ -17,126 +17,103 @@ function measure_results(varargin)
         srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled'];
         load_ex([srcdir filesep 'measure.mat']);
     end
-    performance_matrix(params, measures);
+    performance_matrix(params, measures, 'imageap');
+    performance_matrix(params, measures, 'bboxap');
 end
 
-function performance_matrix(params, measures)
-    srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled'];
-
-    group = [measures.group];
-    clusters = [group.cluster];
-    integral_scales = [group.integral_scale];
-    codebook_types = {group.codebook_type};
-    paths = {group.rest};
-    
-    upaths = unique(paths);
-    uclusters = unique(clusters);
-    uintegral_scales = unique(integral_scales);
-    ucodebook_types = unique(codebook_types);
-        
-    %performance_matrix = cell([length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
-    performance_matrix = zeros([length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
-    
-    
-    f = fopen([srcdir filesep 'performance_rest.csv'], 'w');
-    fprintf(f, 'path amount min mean max\n');
-    for pi=1:length(upaths)
-        path = upaths{pi};
-        
-        idx = strcmp(paths, path);
-        aps = [measures(idx).imageap];
-        fprintf(f, '%s %d %f %f %f\n', path, length(aps), min(aps), mean(aps), max(aps));
-    end
-    fclose(f);
-    restrict_to = '3-NumScales/nonmax-union/calibrated/2-featPerRoi/querysrc-raw/nonexpanded-bbs/2008_001566';
-    
-    for pi=1:length(upaths)
-        restrict_to = upaths{pi};
-        debg('[%4d/%04d] Processing %s', pi, length(upaths), restrict_to);
-        for c=1:length(uclusters)
-            cluster = uclusters(c);
-            for is=1:length(uintegral_scales)
-                integral_scale = uintegral_scales(is);
-                for ct=1:length(ucodebook_types)
-                    codebook_type = ucodebook_types(ct);
-
-                    idx = clusters == cluster & integral_scales == integral_scale & strcmp(codebook_types, codebook_type);
-                    idx = idx & strcmp(paths, restrict_to);
-
-                    %performance_matrix{c, is, ct} = measures(idx);
-                    performance_matrix(c, is, ct) = mean([measures(idx).imageap]);
-                end
-            end
+function performance_matrix(params, measures, apfield)
+    queries = cellfun(@(x)x{1}, {measures.curid}, 'UniformOutput', false);
+    uqueries = unique(queries);
+    for qi=1:length(uqueries)
+        curid = uqueries{qi};
+        srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled' filesep 'perf-' apfield filesep curid];
+        if ~exist(srcdir, 'dir')
+            mkdir(srcdir);
         end
-        close all;
-        remove = isnan(performance_matrix(:));
-        aps = [];
-        for ct=1:length(ucodebook_types)
+        submeasures = measures(strcmp(queries, curid));
+        group = [submeasures.group];
+        clusters = [group.cluster];
+        integral_scales = [group.integral_scale];
+        codebook_types = {group.codebook_type};
+        paths = {group.rest};
+
+        upaths = unique(paths);
+        uclusters = unique(clusters);
+        uintegral_scales = unique(integral_scales);
+        ucodebook_types = unique(codebook_types);
+
+        performance_matrix = zeros([length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
+
+
+        f = fopen([srcdir filesep 'performance_rest.csv'], 'w');
+        fprintf(f, 'path amount min mean max\n');
+        for pi=1:length(upaths)
+            path = upaths{pi};
+
+            idx = strcmp(paths, path);
+            aps = [submeasures(idx).(apfield)];
+            fprintf(f, '%s %d %f %f %f\n', path, length(aps), min(aps), mean(aps), max(aps));
+        end
+        fclose(f);
+        %restrict_to = '3-NumScales/nonmax-union/calibrated/2-featPerRoi/querysrc-raw/nonexpanded-bbs/2008_001566';
+
+        for pi=1:length(upaths)
+            restrict_to = upaths{pi};
+            debg('[%4d/%04d] Processing %s', pi, length(upaths), restrict_to);
             for c=1:length(uclusters)
+                cluster = uclusters(c);
                 for is=1:length(uintegral_scales)
-                    aps = [aps performance_matrix(c, is, ct)];
+                    integral_scale = uintegral_scales(is);
+                    for ct=1:length(ucodebook_types)
+                        codebook_type = ucodebook_types(ct);
+
+                        idx = clusters == cluster & integral_scales == integral_scale & strcmp(codebook_types, codebook_type);
+                        idx = idx & strcmp(paths, restrict_to);
+
+                        performance_matrix(c, is, ct) = mean([submeasures(idx).(apfield)]);
+                    end
                 end
             end
+            close all;
+            remove = isnan(performance_matrix(:));
+            aps = [];
+            for ct=1:length(ucodebook_types)
+                for c=1:length(uclusters)
+                    for is=1:length(uintegral_scales)
+                        aps = [aps performance_matrix(c, is, ct)];
+                    end
+                end
+            end
+            aps(isnan(aps)) = 0;
+
+
+            f= figure('Visible', 'Off');
+
+            bar(aps);
+            ylim([0 1]);
+            scale_axis = gca;
+            sqz = 0.06;
+            set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
+            cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+            type_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+
+            scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
+
+            cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
+            observations_per_cluster = length(uintegral_scales);
+            cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
+
+            type_axis.XTickLabel = ucodebook_types;
+            observations_per_type = length(aps)/length(ucodebook_types);
+            type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;
+            linkaxes([scale_axis, cluster_axis, type_axis]);
+            % restorce gca for title
+            axes(scale_axis);
+            set(f, 'Visible', 'Off');
+            title(strrep(restrict_to, '_', '\_'), 'FontSize', 8);
+            saveas(f, [srcdir filesep sprintf('performance_matrix-%04d.pdf', pi)]);
+            saveas(f, [srcdir filesep sprintf('performance_matrix-%04d.png', pi)]);
         end
-        aps(isnan(aps)) = 0;
-
-
-        f= figure('Visible', 'Off');
-
-        bar(aps);
-        ylim([0 1]);
-        scale_axis = gca;
-        sqz = 0.06;
-        set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
-        cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-        type_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-
-        scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
-
-        cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
-        observations_per_cluster = length(uintegral_scales);
-        cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
-
-        type_axis.XTickLabel = ucodebook_types;
-        observations_per_type = length(aps)/length(ucodebook_types);
-        type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;
-        linkaxes([scale_axis, cluster_axis, type_axis]);
-        % restorce gca for title
-        axes(scale_axis);
-        set(f, 'Visible', 'Off');
-    %     [x,y,z] = meshgrid(uclusters, uintegral_scales, 1:length(ucodebook_types));
-    % %     scatter3(x(:), y(:), performance_matrix(:), 20, z(:), 'filled');
-    % %     xlabel('Clusters');
-    % %     ylabel('Integral Scales');
-    % %     zlabel('Datatype');
-    % %     %zticks(ucodebook_types);
-    % %     colorbar;
-    %     labels = {'Clusters', 'Integral Scale', 'Datatype', 'AP'};
-    %     ticks = {uclusters, uintegral_scales, ucodebook_types, []};
-    %     data = [double(x(:)), y(:),  double(z(:)), performance_matrix(:)];
-    %     data(remove, :) = [];
-    %     [h, ax] = plotmatrix(data);
-    %     for i=1:length(labels)
-    %         xlabel(ax(length(labels),i), labels{i});
-    %         ylabel(ax(i,1), labels{i});
-    % 
-    %         t = ticks{i};
-    %         if ~isempty(t)
-    %             if iscell(t)
-    %                 ax(i, 1).YTickLabel = t;
-    %                 ax(length(labels),i).XTickLabel = t;
-    % 
-    %                 ax(i, 1).YTick = 1:length(t);
-    %                 ax(length(labels),i).XTick = 1:length(t);
-    %             else
-    %                 ax(i, 1).YTick = t;
-    %                 ax(length(labels),i).XTick = t;
-    %             end
-    %         end
-    %     end
-        title(strrep(restrict_to, '_', '\_'), 'FontSize', 8);
-        saveas(f, [srcdir filesep sprintf('performance_matrix-%04d.pdf', pi)]);
-        saveas(f, [srcdir filesep sprintf('performance_matrix-%04d.png', pi)]);
     end
 end
 
@@ -160,7 +137,7 @@ function measures = measureMy(params, groundTruth)
     resultFiles = getAllFiles(srcdir, 'results.mat');
     debg('%d files found', length(resultFiles));
 
-    measures = alloc_struct_array(length(resultFiles), 'imageap', 'bboxap', 'detections', 'path');
+    measures = alloc_struct_array(length(resultFiles), 'imageap', 'bboxap', 'detections', 'path', 'curid');
     for ri=1:length(resultFiles)
         debg('[%4d/%04d]', ri, length(resultFiles));
         [path, ~, ~] = fileparts(resultFiles{ri});
@@ -170,25 +147,40 @@ function measures = measureMy(params, groundTruth)
             load_ex([targetfile, 'measure.mat']);
         else
             load_ex(resultFiles{ri});
+            if isempty(results)
+                err('No results for %s', resultFiles{ri});
+                continue;
+            end
             results = results{1};
+            if isempty(results)
+                err('No results for %s', resultFiles{ri});
+                continue;
+            end
             % remove all empty results
             results = results(~cellfun(@isempty, {results.curid}));
+            curid = unique({results.query_curid});
+            if length(curid) > 1
+                warn('Multiple query ids shouldn''t be possible @ %s', targetfile);
+            end
 
             imageap = measureImageOnly(targetfile, results, all_files, labels, valid_files);
             [detections, bboxap] = measureBboxes(params, targetfile, results, groundTruth);
 
-            save_ex([targetfile, 'measure.mat'], 'imageap', 'detections', 'bboxap');
+            save_ex([targetfile, 'measure.mat'], 'imageap', 'detections', 'bboxap', 'curid');
         end
 
         measures(ri).imageap = imageap;
         measures(ri).detections = detections;
         measures(ri).bboxap = bboxap;
         measures(ri).path = path;
+        measures(ri).curid = curid;
         tmp = textscan(path, 'results/queries/scaled/%d-Cluster/100-Imgs/%f-IntScale/%[^/]/%s');
         tmp{3} = tmp{3}{1};
         tmp{4} = tmp{4}{1};
         measures(ri).group = cell2struct(tmp, {'cluster', 'integral_scale', 'codebook_type', 'rest'}, 2);
     end
+    remove = cellfun(@isempty, {measures.curid});
+    measures(remove) = [];
     save_ex([srcdir filesep 'measure.mat'], 'measures');
 end
 
@@ -265,6 +257,7 @@ function measureExemplar(params, groundTruth)
     if ~exist(targetfolder, 'dir')
         mkdir(targetfolder);
     end
+    copyfile('../masato/timo2/data/imageFiles_database/002/exemplar_000.jpg', [targetfolder 'query.jpg']);
 
     results = [fileids(all_detects_sort_highest_score_exempl(:, 11));...
                num2cell(all_detects_sort_highest_score_exempl(:, 1:4)', 1);...

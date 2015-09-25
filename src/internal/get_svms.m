@@ -102,6 +102,7 @@ function scores = classify_codebooks(params, model, codebooks)
         else
             scores = codebooks' * weights - m.rho;
         end
+        scores(isnan(scores)) = -999;
     end
     profile_log(params);
 end

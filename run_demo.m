@@ -12,10 +12,11 @@ function run_demo(skip_runs)
     clusters = {1000, 512};
     files = {'2008_001566', '2008_000615', '2008_004363'};
     files = {'2008_001566', '2008_000615'};
+    files = {'2008_004363'};
     integral_scales = {1, 0.75, 0.5};
     codebook_type = {'double', 'single'};
     libsvm_classification = {true};
-    libsvm_classification = {true, false};
+%    libsvm_classification = {true, false};
     expand_bboxes = {true, false};
 
     total_runs = length(stream_sizes) * length(query_src) * length(nonmax_type)...
