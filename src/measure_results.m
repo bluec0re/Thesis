@@ -9,7 +9,7 @@ function measure_results(varargin)
     log_file('/dev/null');
     log_level('debug');
 
-    if true
+    if false
         groundTruth = getDatabase(params);
         measureExemplar(params, groundTruth);
         measures = measureMy(params, groundTruth);
@@ -24,7 +24,7 @@ end
 function performance_matrix(params, measures, apfield)
     queries = cellfun(@(x)x{1}, {measures.curid}, 'UniformOutput', false);
     uqueries = unique(queries);
-    for qi=1:length(uqueries)
+    parfor qi=1:length(uqueries)
         curid = uqueries{qi};
         srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled' filesep 'perf-' apfield filesep curid];
         if ~exist(srcdir, 'dir')
@@ -32,7 +32,7 @@ function performance_matrix(params, measures, apfield)
         end
         submeasures = measures(strcmp(queries, curid));
         group = [submeasures.group];
-        backends = [group.backend];
+        backends = {group.backend};
         clusters = [group.cluster];
         integral_scales = [group.integral_scale];
         codebook_types = {group.codebook_type};
@@ -71,10 +71,17 @@ function performance_matrix(params, measures, apfield)
                         for ct=1:length(ucodebook_types)
                             codebook_type = ucodebook_types(ct);
 
-                            idx = strcmp(backends, backend) & clusters == cluster & integral_scales == integral_scale & strcmp(codebook_types, codebook_type);
+                            idx = strcmp(backends, backend) &...
+                                  clusters == cluster &...
+                                  integral_scales == integral_scale &...
+                                  strcmp(codebook_types, codebook_type);
                             idx = idx & strcmp(paths, restrict_to);
 
-                            performance_matrix(b, c, is, ct) = mean([submeasures(idx).(apfield)]);
+                            if any(idx)
+                                %performance_matrix(b, c, is, ct) = mean([submeasures(idx).(apfield)]);
+                                performance_matrix(b, c, is, ct) = [submeasures(idx).(apfield)];
+                                %performance_matrix{b, c, is, ct} = [submeasures(idx).(apfield)];
+                            end
                         end
                     end
                 end
@@ -83,8 +90,8 @@ function performance_matrix(params, measures, apfield)
             remove = isnan(performance_matrix(:));
             aps = [];
             for ct=1:length(ucodebook_types)
-                for c=1:length(uclusters)
-                    for b=1:length(ubackends)
+                for b=1:length(ubackends)
+                    for c=1:length(uclusters)
                         for is=1:length(uintegral_scales)
                             aps = [aps performance_matrix(b, c, is, ct)];
                         end
@@ -94,27 +101,28 @@ function performance_matrix(params, measures, apfield)
             aps(isnan(aps)) = 0;
 
 
-            f= figure('Visible', 'Off');
-
+            f= figure('PaperUnits', 'normalized', 'PaperPosition', [0 0 1 0.8], 'Visible', 'Off');
             bar(aps);
             ylim([0 1]);
             scale_axis = gca;
-            sqz = 0.06;
+            sqz = 0.03;
             set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
-            backend_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-            cluster_axis = axes('Position', get(backend_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-            type_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+            cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+            backend_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+            type_axis = axes('Position', get(backend_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+
 
             scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
+            scale_axis.XTick = [1:length(aps)];
 
-            backend_axis.XTickLabel = repmat(ubackends, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
-            observations_per_backend = length(uintegral_scales);
+            cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
+            observations_per_cluster = length(uintegral_scales);
+            cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters) * length(ubackends))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
+
+            backend_axis.XTickLabel = repmat(ubackends, [1 length(aps) / length(uintegral_scales) / length(uclusters) / length(ubackends)]);
+            observations_per_backend = length(uintegral_scales) * length(uclusters);
             backend_axis.XTick = [1:(length(ucodebook_types) * length(ubackends))] .* observations_per_backend - (observations_per_backend-1) / 2;
-
-            cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(ubackends) / length(uclusters)]);
-            observations_per_cluster = length(uintegral_scales) * length(ubackends);
-            cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters) .* length(ubackends))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
-
+            
             type_axis.XTickLabel = ucodebook_types;
             observations_per_type = length(aps)/length(ucodebook_types);
             type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;

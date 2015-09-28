@@ -112,53 +112,35 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
                    %    |  |
                    %    C--D
                    %keyboard;
-                   a = integralImg.coords(:, 2) <= x1 & integralImg.coords(:, 3) <= y1;
-                   last = find(a, 1, 'last');
-                   if ~isempty(last)
-                       a = a & integralImg.coords(:, 2) == integralImg.coords(last, 2);
-                       tmp = a & integralImg.coords(:, 3) == integralImg.coords(last, 3);
-                       dims = integralImg.coords(tmp, 1);
-                       a = zeros([features, 1]);
-                       a(dims) = integralImg.scores(tmp);
-                   else
-                       a = zeros([features, 1]);
-                   end
-
-                   b = integralImg.coords(:, 2) <= x2 & integralImg.coords(:, 3) <= y1;
-                   last = find(b, 1, 'last');
-                   if ~isempty(last)
-                       b = b & integralImg.coords(:, 2) == integralImg.coords(last, 2);
-                       tmp = b & integralImg.coords(:, 3) == integralImg.coords(last, 3);
-                       dims = integralImg.coords(tmp, 1);
-                       b = zeros([features, 1]);
-                       b(dims) = integralImg.scores(tmp);
-                   else
-                       b = zeros([features, 1]);
-                   end
-
-                   c = integralImg.coords(:, 2) <= x1 & integralImg.coords(:, 3) <= y2;
-                   last = find(c, 1, 'last');
-                   if ~isempty(last)
-                       c = c & integralImg.coords(:, 2) == integralImg.coords(last, 2);
-                       tmp = c & integralImg.coords(:, 3) == integralImg.coords(last, 3);
-                       dims = integralImg.coords(tmp, 1);
-                       c = zeros([features, 1]);
-                       c(dims) = integralImg.scores(tmp);
-                   else
-                       c = zeros([features, 1]);
-                   end
-
-                   d = integralImg.coords(:, 2) <= x2 & integralImg.coords(:, 3) <= y2;
-                   last = find(d, 1, 'last');
-                   if ~isempty(last)
-                       d = d & integralImg.coords(:, 2) == integralImg.coords(last, 2);
-                       tmp = d & integralImg.coords(:, 3) == integralImg.coords(last, 3);
-                       dims = integralImg.coords(tmp, 1);
-                       d = zeros([features, 1]);
-                       d(dims) = integralImg.scores(tmp);
-                   else
-                       d = zeros([features, 1]);
-                   end
+                   % sort order y x cb (3 2 1)
+%                    tmp = integralImg.coords(:, 2) <= x1 & integralImg.coords(:, 3) <= y1;
+%                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
+%                    tmp = integralImg.scores(tmp);
+%                    a = zeros([features, 1]);
+%                    a(dims) = tmp(idx);
+%                    
+% 
+%                    tmp = integralImg.coords(:, 2) <= x2 & integralImg.coords(:, 3) <= y1;
+%                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
+%                    tmp = integralImg.scores(tmp);
+%                    b = zeros([features, 1]);
+%                    b(dims) = tmp(idx);
+% 
+%                    tmp = integralImg.coords(:, 2) <= x1 & integralImg.coords(:, 3) <= y2;
+%                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
+%                    tmp = integralImg.scores(tmp);
+%                    c = zeros([features, 1]);
+%                    c(dims) = tmp(idx);
+% 
+%                    tmp = integralImg.coords(:, 2) <= x2 & integralImg.coords(:, 3) <= y2;
+%                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
+%                    tmp = integralImg.scores(tmp);
+%                    d = zeros([features, 1]);
+%                    d(dims) = tmp(idx);
+                   a = sparse_codebook(integralImg.coords, integralImg.scores, [x1 y1], features);
+                   b = sparse_codebook(integralImg.coords, integralImg.scores, [x2 y1], features);
+                   c = sparse_codebook(integralImg.coords, integralImg.scores, [x1 y2], features);
+                   d = sparse_codebook(integralImg.coords, integralImg.scores, [x2 y2], features);
 
                    codebook(:, si, part) = (a+d) - (b+c);
                 end

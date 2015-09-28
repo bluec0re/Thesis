@@ -143,7 +143,9 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                 integrals(si, fi).I = I2;
             else
                 remaining = I2 ~= 0;
+
                 [cb, x, y] = ind2sub(Is(2:end), find(remaining));
+                % sort order: y x cb
                 coords = [cb, x, y];
                 integrals(si, fi).coords = coords;
                 I2 = I2(remaining);

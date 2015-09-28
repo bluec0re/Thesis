@@ -270,10 +270,22 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
             sec = toc(tmp);
             succ('DONE in %fs', sec);
         end
-        unchanged = codebook == 0;
+        info('Create integral image')
+        tmp = tic;
+        % removes inference information
+        %unchanged = codebook == 0;
+
         codebook = cumsum(codebook, 3);
         codebook = cumsum(codebook, 4);
+
+        % detect difference to previous
+        I3 = circshift(codebook, [0 0 1 1]);
+        I3(1, :, 1, :) = 0;
+        I3(1, :, :, 1) = 0;
+        unchanged = codebook ~= I3;
+
         codebook(unchanged) = 0;
+        succ('Done in %fs', toc(tmp));
 %        codebook = sparse(codebook);
     end
     profile_log(params);
