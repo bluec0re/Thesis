@@ -48,8 +48,8 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             [integrals.scale_factor] = deal(1);
         end
         if ~isfield(integrals, 'I_size')
-            sizes = cellfun(@size, {integrals.I});
-            [integrals.scale_factor] = deal(sizes);
+            sizes = cellfun(@size, {integrals.I}, 'UniformOutput', false);
+            [integrals.I_size] = deal(sizes{:});
         end
         if params.stream_max > 1
             assignin('base', 'LAST_DB', cachename);
@@ -142,7 +142,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             if params.naiive_integral_backend
                 integrals(si, fi).I = I2;
             else
-                remaining = ~iszero(I2);
+                remaining = I2 ~= 0;
                 [cb, x, y] = ind2sub(Is(2:end), find(remaining));
                 coords = [cb, x, y];
                 integrals(si, fi).coords = coords;

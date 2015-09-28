@@ -32,17 +32,18 @@ function performance_matrix(params, measures, apfield)
         end
         submeasures = measures(strcmp(queries, curid));
         group = [submeasures.group];
+        backends = [group.backend];
         clusters = [group.cluster];
         integral_scales = [group.integral_scale];
         codebook_types = {group.codebook_type};
         paths = {group.rest};
 
         upaths = unique(paths);
+        ubackends = unique(backends);
         uclusters = unique(clusters);
         uintegral_scales = unique(integral_scales);
         ucodebook_types = unique(codebook_types);
 
-        performance_matrix = zeros([length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
 
 
         f = fopen([srcdir filesep 'performance_rest.csv'], 'w');
@@ -58,19 +59,23 @@ function performance_matrix(params, measures, apfield)
         %restrict_to = '3-NumScales/nonmax-union/calibrated/2-featPerRoi/querysrc-raw/nonexpanded-bbs/2008_001566';
 
         for pi=1:length(upaths)
+            performance_matrix = zeros([length(ubackends) length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
             restrict_to = upaths{pi};
             debg('[%4d/%04d] Processing %s', pi, length(upaths), restrict_to);
-            for c=1:length(uclusters)
-                cluster = uclusters(c);
-                for is=1:length(uintegral_scales)
-                    integral_scale = uintegral_scales(is);
-                    for ct=1:length(ucodebook_types)
-                        codebook_type = ucodebook_types(ct);
+            for b=1:length(ubackends)
+                backend = ubackends(b);
+                for c=1:length(uclusters)
+                    cluster = uclusters(c);
+                    for is=1:length(uintegral_scales)
+                        integral_scale = uintegral_scales(is);
+                        for ct=1:length(ucodebook_types)
+                            codebook_type = ucodebook_types(ct);
 
-                        idx = clusters == cluster & integral_scales == integral_scale & strcmp(codebook_types, codebook_type);
-                        idx = idx & strcmp(paths, restrict_to);
+                            idx = strcmp(backends, backend) & clusters == cluster & integral_scales == integral_scale & strcmp(codebook_types, codebook_type);
+                            idx = idx & strcmp(paths, restrict_to);
 
-                        performance_matrix(c, is, ct) = mean([submeasures(idx).(apfield)]);
+                            performance_matrix(b, c, is, ct) = mean([submeasures(idx).(apfield)]);
+                        end
                     end
                 end
             end
@@ -79,8 +84,10 @@ function performance_matrix(params, measures, apfield)
             aps = [];
             for ct=1:length(ucodebook_types)
                 for c=1:length(uclusters)
-                    for is=1:length(uintegral_scales)
-                        aps = [aps performance_matrix(c, is, ct)];
+                    for b=1:length(ubackends)
+                        for is=1:length(uintegral_scales)
+                            aps = [aps performance_matrix(b, c, is, ct)];
+                        end
                     end
                 end
             end
@@ -94,19 +101,25 @@ function performance_matrix(params, measures, apfield)
             scale_axis = gca;
             sqz = 0.06;
             set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
-            cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+            backend_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+            cluster_axis = axes('Position', get(backend_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
             type_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
 
             scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
 
-            cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
-            observations_per_cluster = length(uintegral_scales);
-            cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
+            backend_axis.XTickLabel = repmat(ubackends, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
+            observations_per_backend = length(uintegral_scales);
+            backend_axis.XTick = [1:(length(ucodebook_types) * length(ubackends))] .* observations_per_backend - (observations_per_backend-1) / 2;
+
+            cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(ubackends) / length(uclusters)]);
+            observations_per_cluster = length(uintegral_scales) * length(ubackends);
+            cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters) .* length(ubackends))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
 
             type_axis.XTickLabel = ucodebook_types;
             observations_per_type = length(aps)/length(ucodebook_types);
             type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;
-            linkaxes([scale_axis, cluster_axis, type_axis]);
+
+            linkaxes([scale_axis, backend_axis, cluster_axis, type_axis]);
             % restorce gca for title
             axes(scale_axis);
             set(f, 'Visible', 'Off');
@@ -174,10 +187,11 @@ function measures = measureMy(params, groundTruth)
         measures(ri).bboxap = bboxap;
         measures(ri).path = path;
         measures(ri).curid = curid;
-        tmp = textscan(path, 'results/queries/scaled/%d-Cluster/100-Imgs/%f-IntScale/%[^/]/%s');
-        tmp{3} = tmp{3}{1};
+        tmp = textscan(path, 'results/queries/scaled/%[^-]-Backend/%d-Cluster/100-Imgs/%f-IntScale/%[^/]/%s');
+        tmp{1} = tmp{1}{1};
         tmp{4} = tmp{4}{1};
-        measures(ri).group = cell2struct(tmp, {'cluster', 'integral_scale', 'codebook_type', 'rest'}, 2);
+        tmp{5} = tmp{5}{1};
+        measures(ri).group = cell2struct(tmp, {'backend', 'cluster', 'integral_scale', 'codebook_type', 'rest'}, 2);
     end
     remove = cellfun(@isempty, {measures.curid});
     measures(remove) = [];

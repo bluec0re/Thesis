@@ -21,7 +21,9 @@ function params = profile_log( params )
     caller.elapsed = elapsed;
     caller.cpu_elapsed = cpu_elapsed;
     steps = load(params.profile.file, 'steps');
-    steps = steps.steps;
+    if isstruct(steps) && isfield(steps, 'steps')
+        steps = steps.steps;
+    end
     if isempty(steps) || isempty(fieldnames(steps))
         steps = caller;
     else

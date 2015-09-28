@@ -423,8 +423,12 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
     % save space
     database = rmfield(database, 'I');
-    database = rmfield(database, 'coords');
-    database = rmfield(database, 'scores');
+    if isfield(database, 'coords')
+        database = rmfield(database, 'coords');
+    end
+    if isfield(database, 'scores')
+        database = rmfield(database, 'scores');
+    end
 
     % expand bounding boxes by 1/2 of patch average
     if params.expand_bboxes
@@ -649,7 +653,14 @@ function target_dir = get_target_dir(params, curid)
         expand_bbs = 'nonexpanded';
     end
 
+    if params.naiive_integral_backend
+        int_backend = 'naiive';
+    else
+        int_backend = 'sparse';
+    end
+
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
+                filesep int_backend '-Backend'...
                 filesep num2str(params.clusters) '-Cluster'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...
                 num2str(params.integrals_scale_factor) '-IntScale' filesep...

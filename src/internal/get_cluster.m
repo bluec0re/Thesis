@@ -270,11 +270,11 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
             sec = toc(tmp);
             succ('DONE in %fs', sec);
         end
-        unchanged = iszero(codebook);
+        unchanged = codebook == 0;
         codebook = cumsum(codebook, 3);
         codebook = cumsum(codebook, 4);
         codebook(unchanged) = 0;
-        codebook = sparse(codebook);
+%        codebook = sparse(codebook);
     end
     profile_log(params);
 end

@@ -11,8 +11,8 @@ function run_demo(skip_runs)
     calibration = {true};
     clusters = {1000, 512};
     files = {'2008_001566', '2008_000615', '2008_004363'};
-    files = {'2008_001566', '2008_000615'};
-    files = {'2008_004363'};
+%    files = {'2008_001566', '2008_000615'};
+%    files = {'2008_004363'};
     integral_scales = {1, 0.75, 0.5};
     codebook_type = {'double', 'single'};
     libsvm_classification = {true};
@@ -76,6 +76,7 @@ function run_demo(skip_runs)
                                                                     'codebook_type', ct{1},...
                                                                     'use_libsvm_classification', lc{1},...
                                                                     'expand_bboxes', eb{1},...
+                                                                    'naiive_integral_backend', false,...
                                                                     'default_query_file', f{1});
 
                                                         evalin('base', 'whos');
