@@ -10,3 +10,4 @@ masato
 /vendors
 /results
 *.mex*
+*.log
