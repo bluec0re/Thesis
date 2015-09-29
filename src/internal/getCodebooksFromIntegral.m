@@ -103,10 +103,10 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
 
             for si=1:scales
                 for part=1:NUM_PARTS
-                   x1 = round(xmin + xsteps(1, part));
-                   x2 = round(xmin + xsteps(2, part));
-                   y1 = round(ymin + ysteps(1, part));
-                   y2 = round(ymin + ysteps(2, part));
+                   x1 = uint32(round(xmin + xsteps(1, part)));
+                   x2 = uint32(round(xmin + xsteps(2, part)));
+                   y1 = uint32(round(ymin + ysteps(1, part)));
+                   y2 = uint32(round(ymin + ysteps(2, part)));
 
                    %    A--B
                    %    |  |

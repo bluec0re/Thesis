@@ -473,38 +473,100 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
             result(length(scores)).query_curid = model.curid;
         end
 
-        for ii=1:length(umimg)
-            image = umimg(ii);
+        if params.use_calibration
+            for ii=1:length(umimg)
+                image = umimg(ii);
 
-            image_only = find(mimg == image);
-            I = get_image(params, database(image).curid);
-            imax_w = size(I, 2);
-            imax_h = size(I, 1);
-            iobbs = mbbs(image_only, :);
+                image_only = find(mimg == image);
+                I = get_image(params, database(image).curid);
+                imax_w = size(I, 2);
+                imax_h = size(I, 1);
+                iobbs = mbbs(image_only, :);
 
-            iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
-            iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
+                iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
+                iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
 
-            iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
-            ioscores = scores(image_only, :);
+                iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
+                ioscores = scores(image_only, :);
 
 
-            [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
-            info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
-            for pi=1:length(ioscores)
-                si = image_only(idx(pi));
-                bbs = iobbs(pi, :);
+                [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
+                info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
+                for pi=1:length(ioscores)
+                    si = image_only(idx(pi));
+                    bbs = iobbs(pi, :);
+                    bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
+                    I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+
+                    filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
+                    imwrite(I2, filename);
+
+                    result(si).query_curid = model.curid;
+                    result(si).curid = database(image).curid;
+                    result(si).img = image;
+                    result(si).patch = pi;
+                    result(si).score = ioscores(pi);
+                    result(si).bbox = bbs;
+                    result(si).filename = filename;
+                end
+            end
+        else
+            scores2 = [];
+            bbs2 = [];
+            images2 = [];
+            resnum = [];
+            pat hes = [];
+            for ii=1:length(umimg)
+                image = umimg(ii);
+
+                image_only = find(mimg == image);
+                I = get_image(params, database(image).curid);
+                imax_w = size(I, 2);
+                imax_h = size(I, 1);
+                iobbs = mbbs(image_only, :);
+
+                iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
+                iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
+
+                iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
+                ioscores = scores(image_only, :);
+
+
+                [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
+                info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
+                scores2 = [scores2; ioscores];
+                bbs2 = [bbs2; iobbs];
+                images2 = [images2, ones([1 size(iobbs, 1)]) * image];
+                resnum = [resnum, image_only(idx)];
+                patches = [patches, 1:length(ioscores)];
+            end
+            [scores2, idx] = sort(scores2, 'descend');
+            
+            % first 100
+            scores2 = scores2(1:100);
+            idx = idx(1:100);
+            
+            bbs2 = bbs2(idx);
+            images2 = images2(idx);
+            resnum = resnum(idx);
+            patches = patches(idx);
+            
+            for i=1:length(resnum)
+                si = resnum(i);
+                pi = patches(i);
+                image = images2(i);
+                bbs = bbs2(i, :);
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
                 I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
 
-                filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
+                filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores2(i), image, pi);
                 imwrite(I2, filename);
 
                 result(si).query_curid = model.curid;
                 result(si).curid = database(image).curid;
                 result(si).img = image;
                 result(si).patch = pi;
-                result(si).score = ioscores(pi);
+                result(si).score = scores2(i);
                 result(si).bbox = bbs;
                 result(si).filename = filename;
             end

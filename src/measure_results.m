@@ -9,7 +9,7 @@ function measure_results(varargin)
     log_file('/dev/null');
     log_level('debug');
 
-    if false
+    if true
         groundTruth = getDatabase(params);
         measureExemplar(params, groundTruth);
         measures = measureMy(params, groundTruth);
