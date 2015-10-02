@@ -3,18 +3,21 @@ function measure_results(varargin)
 %   Detailed explanation goes here
 
     params = get_default_configuration;
+    params.force_remeasure = false;
+    params.force_recollect = false;
     keywords = parse_keywords(varargin, fieldnames(params));
     params = merge_structs(params, keywords);
     %log_file('measure_results.log');
     log_file('/dev/null');
     log_level('debug');
 
-    if true
+    srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled'];
+
+    if params.force_remeasure || params.force_recollect || ~exist([srcdir filesep 'measure.mat'], 'file')
         groundTruth = getDatabase(params);
         measureExemplar(params, groundTruth);
         measures = measureMy(params, groundTruth);
     else
-        srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled'];
         load_ex([srcdir filesep 'measure.mat']);
     end
     performance_matrix(params, measures, 'imageap');
@@ -24,12 +27,13 @@ end
 function performance_matrix(params, measures, apfield)
     queries = cellfun(@(x)x{1}, {measures.curid}, 'UniformOutput', false);
     uqueries = unique(queries);
-    parfor qi=1:length(uqueries)
+    for qi=1:length(uqueries)
         curid = uqueries{qi};
         srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled' filesep 'perf-' apfield filesep curid];
-        if ~exist(srcdir, 'dir')
-            mkdir(srcdir);
+        if exist(srcdir, 'dir')
+            rmdir(srcdir, 's');
         end
+        mkdir(srcdir);
         submeasures = measures(strcmp(queries, curid));
         group = [submeasures.group];
         backends = {group.backend};
@@ -37,14 +41,14 @@ function performance_matrix(params, measures, apfield)
         integral_scales = [group.integral_scale];
         codebook_types = {group.codebook_type};
         paths = {group.rest};
+        scorings = {group.scoring};
 
         upaths = unique(paths);
         ubackends = unique(backends);
         uclusters = unique(clusters);
         uintegral_scales = unique(integral_scales);
         ucodebook_types = unique(codebook_types);
-
-
+        uscorings = unique(scorings);
 
         f = fopen([srcdir filesep 'performance_rest.csv'], 'w');
         fprintf(f, 'path amount min mean max\n');
@@ -59,81 +63,100 @@ function performance_matrix(params, measures, apfield)
         %restrict_to = '3-NumScales/nonmax-union/calibrated/2-featPerRoi/querysrc-raw/nonexpanded-bbs/2008_001566';
 
         for pi=1:length(upaths)
-            performance_matrix = zeros([length(ubackends) length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
+            performance_matrix = zeros([length(uscorings) length(ubackends) length(uclusters) length(uintegral_scales) length(ucodebook_types)]);
             restrict_to = upaths{pi};
             debg('[%4d/%04d] Processing %s', pi, length(upaths), restrict_to);
-            for b=1:length(ubackends)
-                backend = ubackends(b);
-                for c=1:length(uclusters)
-                    cluster = uclusters(c);
-                    for is=1:length(uintegral_scales)
-                        integral_scale = uintegral_scales(is);
-                        for ct=1:length(ucodebook_types)
-                            codebook_type = ucodebook_types(ct);
+            for s=1:length(uscorings)
+                scoring = uscorings(s);
+                for b=1:length(ubackends)
+                    backend = ubackends(b);
+                    for c=1:length(uclusters)
+                        cluster = uclusters(c);
+                        for is=1:length(uintegral_scales)
+                            integral_scale = uintegral_scales(is);
+                            for ct=1:length(ucodebook_types)
+                                codebook_type = ucodebook_types(ct);
 
-                            idx = strcmp(backends, backend) &...
-                                  clusters == cluster &...
-                                  integral_scales == integral_scale &...
-                                  strcmp(codebook_types, codebook_type);
-                            idx = idx & strcmp(paths, restrict_to);
+                                idx = strcmp(scorings, scoring) &...
+                                      strcmp(backends, backend) &...
+                                      clusters == cluster &...
+                                      integral_scales == integral_scale &...
+                                      strcmp(codebook_types, codebook_type);
+                                idx = idx & strcmp(paths, restrict_to);
 
-                            if any(idx)
-                                %performance_matrix(b, c, is, ct) = mean([submeasures(idx).(apfield)]);
-                                performance_matrix(b, c, is, ct) = [submeasures(idx).(apfield)];
-                                %performance_matrix{b, c, is, ct} = [submeasures(idx).(apfield)];
+                                if any(idx)
+                                    %performance_matrix(b, c, is, ct) = mean([submeasures(idx).(apfield)]);
+                                    performance_matrix(s, b, c, is, ct) = [submeasures(idx).(apfield)];
+                                    %performance_matrix{b, c, is, ct} = [submeasures(idx).(apfield)];
+                                end
                             end
                         end
                     end
                 end
             end
             close all;
-            remove = isnan(performance_matrix(:));
-            aps = [];
-            for ct=1:length(ucodebook_types)
-                for b=1:length(ubackends)
-                    for c=1:length(uclusters)
-                        for is=1:length(uintegral_scales)
-                            aps = [aps performance_matrix(b, c, is, ct)];
+
+            for s=1:length(uscorings)
+                scoring = uscorings{s};
+                aps = [];
+                for ct=1:length(ucodebook_types)
+                    for b=1:length(ubackends)
+                        for c=1:length(uclusters)
+                            for is=1:length(uintegral_scales)
+                                aps = [aps performance_matrix(s, b, c, is, ct)];
+                            end
                         end
                     end
                 end
+                aps(isnan(aps)) = 0;
+
+
+                f= figure('PaperUnits', 'normalized', 'PaperPosition', [0 0 1 0.8], 'Visible', 'Off');
+                steps = size(aps, 2) / length(uintegral_scales);
+                colors = {'red', 'blue', 'green'};
+                for is=1:length(uintegral_scales)
+                    idx = is:length(uintegral_scales):size(aps, 2);
+                    tmp = zeros([1 size(aps, 2)]);
+                    tmp(idx) = aps(idx);
+                    h = bar(tmp, colors{is});
+                    if is == 1
+                        hold on;
+                    end
+                end
+                hold off;
+                ylim([0 1]);
+                %xlim([0 size(aps, 2)+1]);
+                scale_axis = gca;
+                sqz = 0.03;
+                set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
+                cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+                backend_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+                type_axis = axes('Position', get(backend_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+
+
+                scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
+                scale_axis.XTick = [1:length(aps)];
+
+                cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
+                observations_per_cluster = length(uintegral_scales);
+                cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters) * length(ubackends))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
+
+                backend_axis.XTickLabel = repmat(ubackends, [1 length(aps) / length(uintegral_scales) / length(uclusters) / length(ubackends)]);
+                observations_per_backend = length(uintegral_scales) * length(uclusters);
+                backend_axis.XTick = [1:(length(ucodebook_types) * length(ubackends))] .* observations_per_backend - (observations_per_backend-1) / 2;
+
+                type_axis.XTickLabel = ucodebook_types;
+                observations_per_type = length(aps)/length(ucodebook_types);
+                type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;
+
+                linkaxes([scale_axis, backend_axis, cluster_axis, type_axis]);
+                % restorce gca for title
+                axes(scale_axis);
+                set(f, 'Visible', 'Off');
+                title(strrep(restrict_to, '_', '\_'), 'FontSize', 8);
+                saveas(f, [srcdir filesep sprintf('performance_matrix-%s-%04d.pdf', scoring, pi)]);
+                saveas(f, [srcdir filesep sprintf('performance_matrix-%s-%04d.png', scoring, pi)]);
             end
-            aps(isnan(aps)) = 0;
-
-
-            f= figure('PaperUnits', 'normalized', 'PaperPosition', [0 0 1 0.8], 'Visible', 'Off');
-            bar(aps);
-            ylim([0 1]);
-            scale_axis = gca;
-            sqz = 0.03;
-            set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
-            cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-            backend_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-            type_axis = axes('Position', get(backend_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
-
-
-            scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
-            scale_axis.XTick = [1:length(aps)];
-
-            cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
-            observations_per_cluster = length(uintegral_scales);
-            cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters) * length(ubackends))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
-
-            backend_axis.XTickLabel = repmat(ubackends, [1 length(aps) / length(uintegral_scales) / length(uclusters) / length(ubackends)]);
-            observations_per_backend = length(uintegral_scales) * length(uclusters);
-            backend_axis.XTick = [1:(length(ucodebook_types) * length(ubackends))] .* observations_per_backend - (observations_per_backend-1) / 2;
-            
-            type_axis.XTickLabel = ucodebook_types;
-            observations_per_type = length(aps)/length(ucodebook_types);
-            type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;
-
-            linkaxes([scale_axis, backend_axis, cluster_axis, type_axis]);
-            % restorce gca for title
-            axes(scale_axis);
-            set(f, 'Visible', 'Off');
-            title(strrep(restrict_to, '_', '\_'), 'FontSize', 8);
-            saveas(f, [srcdir filesep sprintf('performance_matrix-%04d.pdf', pi)]);
-            saveas(f, [srcdir filesep sprintf('performance_matrix-%04d.png', pi)]);
         end
     end
 end
@@ -164,7 +187,7 @@ function measures = measureMy(params, groundTruth)
         [path, ~, ~] = fileparts(resultFiles{ri});
         targetfile = [path filesep];
 
-        if exist([targetfile 'measure.mat'], 'file')
+        if ~params.force_remeasure && exist([targetfile 'measure.mat'], 'file')
             load_ex([targetfile, 'measure.mat']);
         else
             load_ex(resultFiles{ri});
@@ -195,11 +218,12 @@ function measures = measureMy(params, groundTruth)
         measures(ri).bboxap = bboxap;
         measures(ri).path = path;
         measures(ri).curid = curid;
-        tmp = textscan(path, 'results/queries/scaled/%[^-]-Backend/%d-Cluster/100-Imgs/%f-IntScale/%[^/]/%s');
+        tmp = textscan(path, 'results/queries/scaled/%[^-]-Scoring/%[^-]-Backend/%d-Cluster/100-Imgs/%f-IntScale/%[^/]/%s');
         tmp{1} = tmp{1}{1};
-        tmp{4} = tmp{4}{1};
+        tmp{2} = tmp{2}{1};
         tmp{5} = tmp{5}{1};
-        measures(ri).group = cell2struct(tmp, {'backend', 'cluster', 'integral_scale', 'codebook_type', 'rest'}, 2);
+        tmp{6} = tmp{6}{1};
+        measures(ri).group = cell2struct(tmp, {'scoring', 'backend', 'cluster', 'integral_scale', 'codebook_type', 'rest'}, 2);
     end
     remove = cellfun(@isempty, {measures.curid});
     measures(remove) = [];

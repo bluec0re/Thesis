@@ -1,14 +1,11 @@
 function demo(train, varargin)
 %DEMO Demo implementation
 %
-%   Syntax: demo(stream_size, scale_factor, codebook_type, train, scale_count)
+%   Syntax: demo(train, ...)
 %
 %   Input:
-%       stream_size - Optional size of pascal objects to process. Default: 100
-%       scale_factor - Optional integral image scale factor. Default: 0.75, Valid: 0-1
-%       codebook_type - Optional datatype of codebooks. Default: 'double', Valid: 'double', 'single'
-%       train - Optional boolean to indicate the creation of a image database. Default: false
-%       scale_count - Optional number of different scales of integral images to use. Default: 3
+%       train - boolean to indicate the creation of a image database. Default: false
+%       Name-Value pairs to override the default configuration
 
 
     close all;
@@ -18,23 +15,14 @@ function demo(train, varargin)
     addpath(genpath('src/internal'));
 
     params = get_default_configuration;
+    params.log_file = 'demo.log';
+    params.log_level = 'debug';
     keywords = parse_keywords(varargin, fieldnames(params));
     params = merge_structs(params, keywords);
     params.default_bounding_box = params.get_bounding_box(params);
-    if exist('scale_factor', 'var')
-         params.integrals_scale_factor = scale_factor; % save only 3 of 4 entries
-    end
-    if exist('stream_size', 'var')
-        params.stream_max = stream_size;
-    end
-    if exist('codebook_type', 'var')
-        params.codebook_type = codebook_type;
-    end
-    if exist('scale_count', 'var')
-        params.codebook_scales_count = scale_count;
-    end
-    log_file('demo.log');
-    set_log_level('debug');
+
+    log_file(params.log_file);
+    set_log_level(params.log_level);
     % print params
     debg('Params:\n%s', struct2str(params));
 
@@ -335,18 +323,27 @@ function results = searchInteractive(params, cluster_model)
         profile_log(params);
         setStatus('Filtering query features...');
 
-        query_codebooks = extract_query_codebook( params, cluster_model, query_file, roi_size );
-        debg('Got %d codebooks', length(query_codebooks));
-
-        setStatus('Train SVM...');
         params.dataset.localdir = old_params.dataset.localdir;
-        svm_models = get_svms(params, query_codebooks, neg_codebooks);
+        query_codebooks.size = roi_size;
+        query_codebooks.curid = curid;
+        svm_models = get_svms(params, query_codebooks, []);
+        if ~isstruct(svm_models)
+            if ~params.query_from_integral
+                params.dataset.localdir = [];
+            end
+            query_codebooks = extract_query_codebook( params, cluster_model, query_file, roi_size );
+            debg('Got %d codebooks', length(query_codebooks));
+
+            setStatus('Train SVM...');
+            params.dataset.localdir = old_params.dataset.localdir;
+            svm_models = get_svms(params, query_codebooks, neg_codebooks);
+        end
         params.dataset.localdir = [];
         clear neg_codebooks;
 
         if params.use_calibration
             setStatus('Calibrate...');
-            fit_params = calibrate_fit(params, svm_models, {query_file}, cluster_model);
+            fit_params = calibrate_fit(params, svm_models, query_file, cluster_model);
         else
             fit_params = [];
         end
@@ -419,16 +416,13 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 
     roi_w = pos(3) - pos(1) + 1;
     roi_h = pos(4) - pos(2) + 1;
-    windows = calc_windows(max_w, max_h, roi_w  * 0.75, roi_h * 0.75);
+    windows = calc_windows(params, max_w, max_h, roi_w  * 0.75, roi_h * 0.75);
     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
     % save space
-    database = rmfield(database, 'I');
-    if isfield(database, 'coords')
-        database = rmfield(database, 'coords');
-    end
-    if isfield(database, 'scores')
-        database = rmfield(database, 'scores');
-    end
+    % database = rmfield(database, 'I');
+    % if isfield(database, 'tree')
+    %     database = rmfield(database, 'tree');
+    % end
 
     % expand bounding boxes by 1/2 of patch average
     if params.expand_bboxes
@@ -497,6 +491,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                     bbs = iobbs(pi, :);
                     bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
                     I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                    %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                     filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
                     imwrite(I2, filename);
@@ -515,7 +510,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
             bbs2 = [];
             images2 = [];
             resnum = [];
-            pat hes = [];
+            patches = [];
             for ii=1:length(umimg)
                 image = umimg(ii);
 
@@ -537,27 +532,29 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                 scores2 = [scores2; ioscores];
                 bbs2 = [bbs2; iobbs];
                 images2 = [images2, ones([1 size(iobbs, 1)]) * image];
-                resnum = [resnum, image_only(idx)];
+                resnum = [resnum; image_only(idx)];
                 patches = [patches, 1:length(ioscores)];
             end
             [scores2, idx] = sort(scores2, 'descend');
-            
+
             % first 100
-            scores2 = scores2(1:100);
-            idx = idx(1:100);
-            
-            bbs2 = bbs2(idx);
+            scores2 = scores2(1:min([100, length(scores2)]));
+            idx = idx(1:min([100, length(idx)]));
+
+            bbs2 = bbs2(idx, :);
             images2 = images2(idx);
             resnum = resnum(idx);
             patches = patches(idx);
-            
+
             for i=1:length(resnum)
                 si = resnum(i);
                 pi = patches(i);
                 image = images2(i);
+                I = get_image(params, database(image).curid);
                 bbs = bbs2(i, :);
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
                 I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                 filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores2(i), image, pi);
                 imwrite(I2, filename);
@@ -615,12 +612,22 @@ function fit_params = calibrate_fit(params, svm_models, query_file, cluster_mode
 
     profile_log(params);
     params.feature_type = 'full';
-    features = get_features_from_stream(params, query_file);
-    features = whiten_features(params, features);
-    features = filter_features(params, features);
-    codebooks = get_codebooks(params, features, cluster_model);
+
+    if false
+        % TODO get all codebooks for the window list
+        windows = calc_windows(params, size(I, 2), size(I, 1));
+        % wrong
+        %roi_size = query_file.bbox([3 4]) - query_file.bbox([1 2]) + 1;
+        %codebooks = extract_query_codebook( params, cluster_model, query_file, roi_size );
+    else
+        codebooks = get_codebooks(params, [], cluster_model);
+        if ~isstruct(codebooks)
+            features = prepare_features(params, {query_file});
+            codebooks = get_codebooks(params, features, cluster_model);
+            clear features;
+        end
+    end
     codebooks = double(horzcat(codebooks.I));
-    clear features;
 
 
     fit_params = zeros([length(svm_models) 2]);
@@ -629,6 +636,9 @@ function fit_params = calibrate_fit(params, svm_models, query_file, cluster_mode
 
         scores = svm_model.classify(params, svm_model, codebooks);
         fit_params(mi, :) = estimate_fit_params(params, scores);
+        %debg('Fitted \u03BC=%f \u03C3=%f', fit_params(1, 1), fit_params(1, 2));
+        %debg('Fitted \xce\xbc=%f \xce\xc3=%f', fit_params(1, 1), fit_params(1, 2));
+        debg('Fitted mu=%f sigma=%f', fit_params(1, 1), fit_params(1, 2));
     end
 end
 
@@ -660,7 +670,7 @@ function rhos = calibrate_rho(params, svm_models, query_file, cluster_model, gro
     for mi=1:length(svm_models)
         svm_model = svm_models(mi);
         scores = svm_model.classify(params, svm_model, codebooks);
-        windows = calc_windows(features.I_size(2), features.I_size(1));
+        windows = calc_windows(params, features.I_size(2), features.I_size(1));
         % TL
         matchingTL = windows(:, 1) <= ground_truths(1) & ground_truths(1) <= windows(:, 3);
         matchingTL = windows(:, 2) <= ground_truths(2) & ground_truths(2) <= windows(:, 4) & matchingTL;
@@ -721,7 +731,14 @@ function target_dir = get_target_dir(params, curid)
         int_backend = 'sparse';
     end
 
+    if params.use_libsvm_classification
+        scoring = 'libsvm';
+    else
+        scoring = 'matlab';
+    end
+
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
+                filesep scoring '-Scoring'...
                 filesep int_backend '-Backend'...
                 filesep num2str(params.clusters) '-Cluster'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...

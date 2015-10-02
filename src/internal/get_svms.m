@@ -28,19 +28,32 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
         mkdir(basedir);
     end
 
-    cachename = sprintf('%s/%d-%d-%s-%s-%d-%d.mat',...
+    src = 'raw';
+    if params.query_from_integral
+        src = 'integral';
+    end
+    cachename = sprintf('%s/%d-%d-%s-%s-%d-%d-%.3f-%s.mat',...
                      basedir, params.clusters, params.parts,...
                      params.class, params.stream_name, params.stream_max,...
-                     params.features_per_roi);
+                     params.codebook_scales_count, params.features_per_roi, src);
 
     if params.stream_max == 1
         cachename = strrep(cachename, '.mat', ['-' query_codebooks(1).curid '.mat']);
     end
 
-    if CACHE_FILE && fileexists(cachename)&& false % only save
+    if ~isempty(query_codebooks.size)
+        cachename = strrep(cachename, '.mat', sprintf('-%dx%d.mat', query_codebooks.size(1), query_codebooks.size(2)));
+    end
+
+    if CACHE_FILE && fileexists(cachename) %&& false % only save
         load_ex(cachename);
         svm_models = addHandlers(svm_models);
         fprintf(1,'get_svms: length of stream=%05d\n', length(svm_models));
+        return;
+    end
+
+    if ~isfield(query_codebooks, 'I') || isempty(query_codebooks.I)
+        svm_models = [];
         return;
     end
 
@@ -102,7 +115,9 @@ function scores = classify_codebooks(params, model, codebooks)
         else
             scores = codebooks' * weights - m.rho;
         end
-        scores(isnan(scores)) = -999;
+        nans = isnan(scores);
+        debg('%d NaNs produced!', sum(nans))
+        scores(nans) = -999;
     end
     profile_log(params);
 end

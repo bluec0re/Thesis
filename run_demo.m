@@ -1,23 +1,25 @@
-function run_demo(skip_runs)
+function run_demo(skip_runs, log_file_name)
     addpath(genpath('src'));
+
 
     %stream_sizes = {10, 20, 50};
     %stream_sizes = {20, 50};
     stream_sizes = {100};
     query_src = {false, true};
     nonmax_type = {true, false};
-    feature_per_roi = {2, 1.5, 1};
-    %calibration = {true, false};
-    calibration = {true};
+    feature_per_roi = {2, 1};
+    calibration = {true, false};
+    %calibration = {true};
     clusters = {1000, 512};
     files = {'2008_001566', '2008_000615', '2008_004363'};
 %    files = {'2008_001566', '2008_000615'};
 %    files = {'2008_004363'};
-    integral_scales = {1, 0.75, 0.5};
+    integral_scales = {1, 0.75};
     codebook_type = {'double', 'single'};
-    libsvm_classification = {true};
+    libsvm_classification = {false};
 %    libsvm_classification = {true, false};
     expand_bboxes = {true, false};
+    naiive_integral_backend = {false, true};
 
     total_runs = length(stream_sizes) * length(query_src) * length(nonmax_type)...
         * length(feature_per_roi) * length(calibration) * length(clusters)...
@@ -27,6 +29,10 @@ function run_demo(skip_runs)
     current_run = 1;
     if ~exist('skip_runs', 'var')
         skip_runs = 0;
+    end
+
+    if ~exist('log_file_name', 'var')
+        log_file_name = ['demo_' datestr(now, 'yyyy-mm-dd') '.log'];
     end
     %clean = onCleanup(@() (profsave; fprintf(2, 'Last run: %d\n', evalin('caller', 'current_run'))));
     clean = onCleanup(@() profsave);
@@ -77,7 +83,8 @@ function run_demo(skip_runs)
                                                                     'use_libsvm_classification', lc{1},...
                                                                     'expand_bboxes', eb{1},...
                                                                     'naiive_integral_backend', false,...
-                                                                    'default_query_file', f{1});
+                                                                    'default_query_file', f{1},...
+                                                                    'log_file', log_file_name);
 
                                                         evalin('base', 'whos');
                                                     catch e

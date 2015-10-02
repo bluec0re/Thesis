@@ -117,7 +117,7 @@ function features = get_features_from_stream( params, stream )
         profile_log(params);
 
         if strcmp(type, 'full') || strcmp(type, 'full-masked')
-            windows = calc_windows(size(I, 2), size(I, 1));
+            windows = calc_windows(params, size(I, 2), size(I, 1));
 
             featureIds = get_features_per_window(params, windows, feature.bbs);
             feature.window2feature = featureIds;

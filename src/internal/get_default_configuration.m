@@ -31,6 +31,9 @@ function params = get_default_configuration()
     params.use_libsvm_classification = true;
     params.expand_bboxes = true;
     params.naiive_integral_backend = true;
+    params.window_margin = 10; % pixels
+    params.max_window_scales = 10;
+    params.min_window_size = 0.5; % clip no more than percentage
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;

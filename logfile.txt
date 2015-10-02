@@ -19755,3 +19755,8 @@ use_libsvm_classification: true
 ## Expand Boundingboxes: 1
 ###################################
 
+[[97m2015-09-29 16:07:18.663[0m] [[94mINFO[0m] Calculating windows...DONE in 0.230750 sec. 3800 total windows
+[[97m2015-09-29 20:01:10.723[0m] [[94mINFO[0m] Calculating windows...DONE in 0.064640 sec. 3800 total windows
+[[97m2015-09-29 20:01:17.976[0m] [[94mINFO[0m] Calculating codebooks...
+[[97m2015-09-29 20:03:20.818[0m] [[94mINFO[0m] Calculating codebooks...
+[[97m2015-09-29 20:03:42.532[0m] [[92mSUCC[0m] DONE in 21.698191 sec

@@ -11,3 +11,4 @@ masato
 /results
 *.mex*
 *.log
+*.o

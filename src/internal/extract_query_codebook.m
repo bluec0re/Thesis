@@ -3,12 +3,12 @@ function query_codebooks = extract_query_codebook( params, cluster_model, query_
 %   Detailed explanation goes here
 
     params.stream_max = 1;
-    
+
     bbox = query_file.bbox;
     if ~exist('roi_size', 'var')
         roi_size = bbox([3 4]) - bbox([1 2]) + 1;
     end
-            
+
     if params.query_from_integral
         params.feature_type = 'full';
         query_integrals = get_codebook_integrals(params, [], cluster_model, roi_size);
@@ -20,6 +20,7 @@ function query_codebooks = extract_query_codebook( params, cluster_model, query_
         [ query_codebooks.size, query_codebooks.I, ~ ] = calc_codebooks(params, query_integrals, bbox, params.parts );
         query_codebooks.I = query_codebooks.I';
         query_codebooks.curid = query_file.curid;
+        query_codebooks.size = query_codebooks.size([3 4]) - query_codebooks.size([1 2]) + 1;
     else
         params.feature_type = 'bboxed';
         params.dataset.localdir = [];
@@ -28,4 +29,3 @@ function query_codebooks = extract_query_codebook( params, cluster_model, query_
         clear query_features;
     end
 end
-

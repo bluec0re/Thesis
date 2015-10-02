@@ -282,9 +282,10 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
         I3 = circshift(codebook, [0 0 1 1]);
         I3(1, :, 1, :) = 0;
         I3(1, :, :, 1) = 0;
-        unchanged = codebook ~= I3;
+        unchanged = codebook == I3;
 
         codebook(unchanged) = 0;
+        debg('Removed %d entries', sum(unchanged(:)));
         succ('Done in %fs', toc(tmp));
 %        codebook = sparse(codebook);
     end

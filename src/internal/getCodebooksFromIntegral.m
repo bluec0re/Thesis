@@ -34,6 +34,7 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
         end
         codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
         %secs = zeros([1 size(bboxes, 1)]);
+        %parfor bid=1:size(bboxes, 1)
         for bid=1:size(bboxes, 1)
             tmp = tic;
             bb = bboxes(bid, :);
@@ -90,7 +91,8 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
         end
         codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
         %secs = zeros([1 size(bboxes, 1)]);
-        for bid=1:size(bboxes, 1)
+        parfor bid=1:size(bboxes, 1)
+        %for bid=1:size(bboxes, 1)
             tmp = tic;
             bb = bboxes(bid, :);
             xmin = bb(1);
@@ -118,31 +120,38 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
 %                    tmp = integralImg.scores(tmp);
 %                    a = zeros([features, 1]);
 %                    a(dims) = tmp(idx);
-%                    
-% 
+%
+%
 %                    tmp = integralImg.coords(:, 2) <= x2 & integralImg.coords(:, 3) <= y1;
 %                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
 %                    tmp = integralImg.scores(tmp);
 %                    b = zeros([features, 1]);
 %                    b(dims) = tmp(idx);
-% 
+%
 %                    tmp = integralImg.coords(:, 2) <= x1 & integralImg.coords(:, 3) <= y2;
 %                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
 %                    tmp = integralImg.scores(tmp);
 %                    c = zeros([features, 1]);
 %                    c(dims) = tmp(idx);
-% 
+%
 %                    tmp = integralImg.coords(:, 2) <= x2 & integralImg.coords(:, 3) <= y2;
 %                    [dims, idx] = unique(integralImg.coords(tmp, 1), 'last', 'legacy');
 %                    tmp = integralImg.scores(tmp);
 %                    d = zeros([features, 1]);
 %                    d(dims) = tmp(idx);
-                   a = sparse_codebook(integralImg.coords, integralImg.scores, [x1 y1], features);
-                   b = sparse_codebook(integralImg.coords, integralImg.scores, [x2 y1], features);
-                   c = sparse_codebook(integralImg.coords, integralImg.scores, [x1 y2], features);
-                   d = sparse_codebook(integralImg.coords, integralImg.scores, [x2 y2], features);
+% old
+%                    a = sparse_codebook(integralImg.coords, integralImg.scores, [x1 y1], features);
+%                    b = sparse_codebook(integralImg.coords, integralImg.scores, [x2 y1], features);
+%                    c = sparse_codebook(integralImg.coords, integralImg.scores, [x1 y2], features);
+%                    d = sparse_codebook(integralImg.coords, integralImg.scores, [x2 y2], features);
+                   a = sparse_codebook(integralImg, x1, y1);
+                   b = sparse_codebook(integralImg, x2, y1);
+                   c = sparse_codebook(integralImg, x1, y2);
+                   d = sparse_codebook(integralImg, x2, y2);
 
                    codebook(:, si, part) = (a+d) - (b+c);
+                   % very bad results??
+                    % codebook(:, si, part) = sparse_codebook_integral(integralImg, [x1; x2], [y1; y2]);
                 end
             end
             codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);

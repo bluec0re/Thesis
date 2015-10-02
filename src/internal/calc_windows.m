@@ -1,4 +1,4 @@
-function windows_bb = calc_windows( w, h, cbw, cbh, I )
+function windows_bb = calc_windows(params, w, h, cbw, cbh, I )
 %CALC_WINDOWS Calculates the windows wich have to be extracted in a sliding window approach
 %
 %   Syntax:     windows_bb = calc_windows( w, h, cbw, cbh, I )
@@ -34,19 +34,23 @@ function windows_bb = calc_windows( w, h, cbw, cbh, I )
     tic;
 
     windows_bb = [];
-    for s=0:10
+    for s=0:params.max_window_scales
         scale = 2^s;
 
         bw = cbw * scale;
         bh = cbh * scale;
-        step = 10;
+        step = params.window_margin;% * scale;
+
         if bw > w || bh > h
             break
         end
         for x=1:step:w
             for y=1:step:h
                 bb = [max(x, 1), max(y, 1), min(x + bw, w), min(y + bh, h)];
-                windows_bb = [windows_bb; bb];
+                if bb(3) > params.min_window_size * bw && bb(4) > params.min_window_size * bh
+                    windows_bb = [windows_bb; bb];
+                end
+
                 if debug
                     figure(fig);
                     set(fig, 'Visible', 'Off');
@@ -58,6 +62,7 @@ function windows_bb = calc_windows( w, h, cbw, cbh, I )
             end
         end
     end
+    windows_bb = unique(windows_bb, 'rows');
     sec = toc;
     succ('DONE in %f sec. %d total windows', sec, size(windows_bb, 1), false, true);
 

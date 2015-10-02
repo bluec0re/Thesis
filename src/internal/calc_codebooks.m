@@ -41,11 +41,14 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         h = s(4);
 
         % adjust bounding boxes
-        adjusted_windows_bb = windows_bb * scale_factor;
+        adjusted_windows_bb = round(windows_bb * scale_factor); % no subpixel
 
         imgWindowsBB = adjusted_windows_bb(adjusted_windows_bb(:, 1) < w & adjusted_windows_bb(:, 2) < h, :);
+        %imgWindowsBB = max(imgWindowsBB, 0);
         imgWindowsBB(:, 3) = min(imgWindowsBB(:, 3), w);
         imgWindowsBB(:, 4) = min(imgWindowsBB(:, 4), h);
+        
+        imgWindowsBB = unique(imgWindowsBB, 'rows');
 
 
         % codebook x scales x amount
@@ -64,6 +67,9 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 
         % is a codebook with 0 entries valid?
         valid_codebooks = any(codebooks2, 2);
+
+        debg('%d/%d removed...', sum(~valid_codebooks), size(codebooks2, 1), false, false);
+
         codebooks2(~valid_codebooks, :) = [];
 
         if isempty(codebooks2)
