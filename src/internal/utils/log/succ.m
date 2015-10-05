@@ -3,7 +3,7 @@ function succ(fmt, varargin)
         return;
     end
 
-    if ~usejava('desktop') && ~isempty(getenv('TERM'))
+    if ~usejava('desktop') && ~isempty(getenv('TERM')) && isempty(getCurrentTask())
         newfmt = '[\033[92mSUCC\033[0m] %s';
     else
         newfmt = '[SUCC] %s';

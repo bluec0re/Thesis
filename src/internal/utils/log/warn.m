@@ -3,7 +3,7 @@ function warn(fmt, varargin)
         return;
     end
 
-    if ~usejava('desktop') && ~isempty(getenv('TERM'))
+    if ~usejava('desktop') && ~isempty(getenv('TERM')) && isempty(getCurrentTask())
         newfmt = '[\033[93mWARN\033[0m] %s';
     else
         newfmt = '[WARN] %s';

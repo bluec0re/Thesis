@@ -19760,3 +19760,107 @@ use_libsvm_classification: true
 [[97m2015-09-29 20:01:17.976[0m] [[94mINFO[0m] Calculating codebooks...
 [[97m2015-09-29 20:03:20.818[0m] [[94mINFO[0m] Calculating codebooks...
 [[97m2015-09-29 20:03:42.532[0m] [[92mSUCC[0m] DONE in 21.698191 sec
+[[97m2015-10-05 14:29:23.876[0m] [[95mDEBG[0m] -- [   1/0001] Calc codebooks for 2007_008932...368/3584 removed...DONE in 4.426728 sec
+[[97m2015-10-05 14:32:20.489[0m] [[95mDEBG[0m] -- [   1/0001] Calc codebooks for 2007_008932...368/3584 removed...DONE in 4.251870 sec
+[[97m2015-10-05 14:34:05.324[0m] [DEBG] -- [   1/0001] Calc codebooks for 2007_008932...368/3584 removed...DONE in 4.775679 sec
+[2015-10-05 14:34:35.415] [DEBG] -- [   1/0001] Calc codebooks for 2007_008932...368/3584 removed...DONE in 4.380279 sec
+[2015-10-05 14:54:00.766] [DEBG] -- [   3/0050] Calc codebooks for 2008_000176...[2015-10-05 14:54:01.588] [DEBG] -- [   6/0050] Calc codebooks for 2008_002098...[2015-10-05 14:54:02.571] [DEBG] -- [   9/0050] Calc codebooks for 2008_003287...[2015-10-05 14:54:03.654] [DEBG] -- [  12/0050] Calc codebooks for 2008_004872...381/3584 removed...DONE in 4.674278 sec
+[2015-10-05 14:54:05.513] [DEBG] -- [   2/0050] Calc codebooks for 2008_000133...375/2844 removed...DONE in 4.092702 sec
+[2015-10-05 14:54:05.767] [DEBG] -- [   5/0050] Calc codebooks for 2008_000691...[2015-10-05 14:54:06.004] [DEBG] -- [  15/0050] Calc codebooks for 2008_007103...[2015-10-05 14:54:06.746] [DEBG] -- [  18/0050] Calc codebooks for 2008_008724...356/3172 removed...DONE in 4.601031 sec
+[2015-10-05 14:54:07.292] [DEBG] -- [   8/0050] Calc codebooks for 2008_002491...[2015-10-05 14:54:08.175] [DEBG] -- [  21/0050] Calc codebooks for 2009_000634...368/3584 removed...DONE in 4.988402 sec
+[2015-10-05 14:54:08.712] [DEBG] -- [  11/0050] Calc codebooks for 2008_004363...370/3584 removed...DONE in 4.005993 sec
+[2015-10-05 14:54:09.536] [DEBG] -- [   1/0050] Calc codebooks for 2007_008932...[2015-10-05 14:54:09.664] [DEBG] -- [  24/0050] Calc codebooks for 2009_002295...374/3584 removed...DONE in 4.202935 sec
+[2015-10-05 14:54:09.985] [DEBG] -- [   4/0050] Calc codebooks for 2008_000562...374/3584 removed...DONE in 4.891893 sec
+[2015-10-05 14:54:10.958] [DEBG] -- [  14/0050] Calc codebooks for 2008_005190...382/3584 removed...DONE in 4.908532 sec
+[2015-10-05 14:54:11.720] [DEBG] -- [  17/0050] Calc codebooks for 2008_008611...301/3784 removed...DONE in 4.887131 sec
+[2015-10-05 14:54:12.197] [DEBG] -- [   7/0050] Calc codebooks for 2008_002369...[2015-10-05 14:54:12.224] [DEBG] -- [  27/0050] Calc codebooks for 2009_003208...373/3584 removed...372/3584 removed...DONE in 4.736021 sec
+[2015-10-05 14:54:12.981] [DEBG] -- [  20/0050] Calc codebooks for 2009_000632...DONE in 4.282044 sec
+[2015-10-05 14:54:13.011] [DEBG] -- [  10/0050] Calc codebooks for 2008_003970...368/3584 removed...DONE in 4.257829 sec
+368/3584 removed...376/3584 removed...DONE in 4.725366 sec
+[2015-10-05 14:54:14.463] [DEBG] -- [  23/0050] Calc codebooks for 2009_002087...DONE in 4.502978 sec
+352/3184 removed...[2015-10-05 14:54:14.551] [DEBG] -- [  29/0050] Calc codebooks for 2009_004551...DONE in 3.699621 sec
+[2015-10-05 14:54:14.685] [DEBG] -- [  13/0050] Calc codebooks for 2008_005147...[2015-10-05 14:54:15.235] [DEBG] -- [  35/0050] Calc codebooks for 2010_002814...[2015-10-05 14:54:15.588] [DEBG] -- [  37/0050] Calc codebooks for 2010_004365...368/3584 removed...[2015-10-05 14:54:15.632] [DEBG] -- [  31/0050] Calc codebooks for 2009_004934...DONE in 4.001242 sec
+[2015-10-05 14:54:15.746] [DEBG] -- [  16/0050] Calc codebooks for 2008_008395...385/3584 removed...DONE in 4.043283 sec
+[2015-10-05 14:54:16.210] [DEBG] -- [  33/0050] Calc codebooks for 2010_000342...366/3184 removed...DONE in 4.618426 sec
+[2015-10-05 14:54:16.909] [DEBG] -- [  26/0050] Calc codebooks for 2009_002954...369/3584 removed...368/3584 removed...DONE in 3.978347 sec
+DONE in 4.038952 sec
+[2015-10-05 14:54:17.036] [DEBG] -- [  19/0050] Calc codebooks for 2009_000545...[2015-10-05 14:54:17.315] [DEBG] -- [  39/0050] Calc codebooks for 2010_005116...[2015-10-05 14:54:17.907] [DEBG] -- [  40/0050] Calc codebooks for 2010_005951...368/3584 removed...DONE in 4.022683 sec
+[2015-10-05 14:54:18.500] [DEBG] -- [  22/0050] Calc codebooks for 2009_000985...368/3584 removed...DONE in 4.402947 sec
+407/3584 removed...DONE in 3.978109 sec
+368/3584 removed...371/3584 removed...DONE in 5.300432 sec
+[2015-10-05 14:54:19.952] [DEBG] -- [  28/0050] Calc codebooks for 2009_004364...[2015-10-05 14:54:19.959] [DEBG] -- [  41/0050] Calc codebooks for 2010_006031...DONE in 4.733506 sec
+[2015-10-05 14:54:19.995] [DEBG] -- [  34/0050] Calc codebooks for 2010_001899...418/3584 removed...[2015-10-05 14:54:20.626] [DEBG] -- [  42/0050] Calc codebooks for 2010_006274...DONE in 5.050907 sec
+[2015-10-05 14:54:20.664] [DEBG] -- [  36/0050] Calc codebooks for 2010_003701...599/3184 removed...368/3584 removed...590/3584 removed...DONE in 3.947076 sec
+[2015-10-05 14:54:20.871] [DEBG] -- [  25/0050] Calc codebooks for 2009_002928...DONE in 5.185787 sec
+[2015-10-05 14:54:20.887] [DEBG] -- [  30/0050] Calc codebooks for 2009_004882...DONE in 3.867399 sec
+368/3584 removed...DONE in 5.372602 sec
+[2015-10-05 14:54:21.653] [DEBG] -- [  32/0050] Calc codebooks for 2010_000254...368/3584 removed...343/2684 removed...DONE in 3.429258 sec
+[2015-10-05 14:54:21.955] [DEBG] -- [  43/0050] Calc codebooks for 2010_006366...DONE in 4.705365 sec
+[2015-10-05 14:54:22.048] [DEBG] -- [  38/0050] Calc codebooks for 2010_004921...434/3584 removed...DONE in 4.473363 sec
+[2015-10-05 14:54:22.750] [DEBG] -- [  44/0050] Calc codebooks for 2010_006668...[2015-10-05 14:54:23.044] [DEBG] -- [  45/0050] Calc codebooks for 2011_000053...949/3584 removed...DONE in 4.516372 sec
+[2015-10-05 14:54:24.724] [DEBG] -- [  46/0050] Calc codebooks for 2011_001138...437/3584 removed...DONE in 4.851710 sec
+296/3784 removed...DONE in 5.160109 sec
+369/3584 removed...DONE in 4.329373 sec
+368/3584 removed...DONE in 4.677554 sec
+419/3684 removed...506/3484 removed...DONE in 4.502477 sec
+373/2684 removed...[2015-10-05 14:54:25.423] [DEBG] -- [  47/0050] Calc codebooks for 2011_001726...DONE in 4.778099 sec
+DONE in 3.430212 sec
+[2015-10-05 14:54:25.631] [DEBG] -- [  48/0050] Calc codebooks for 2011_002110...490/3584 removed...[2015-10-05 14:54:26.371] [DEBG] -- [  49/0050] Calc codebooks for 2011_002217...DONE in 4.757764 sec
+[2015-10-05 14:54:26.445] [DEBG] -- [  50/0050] Calc codebooks for 2011_004221...434/3184 removed...DONE in 3.993747 sec
+666/3584 removed...DONE in 4.462358 sec
+402/4384 removed...DONE in 5.481059 sec
+368/3584 removed...DONE in 4.302116 sec
+392/3184 removed...DONE in 3.657968 sec
+368/3584 removed...DONE in 4.816058 sec
+368/3584 removed...DONE in 4.168218 sec
+374/3584 removed...DONE in 4.517639 sec
+[2015-10-05 14:58:12.089] [DEBG] -- [   3/0050] Calc codebooks for 2008_000176...[2015-10-05 14:58:12.625] [DEBG] -- [   6/0050] Calc codebooks for 2008_002098...[2015-10-05 14:59:13.881] [DEBG] -- [   3/0050] Calc codebooks for 2008_000176...[2015-10-05 14:59:50.618] [DEBG] -- [   3/0050] Calc codebooks for 2008_000176...[2015-10-05 14:59:51.642] [DEBG] -- [   6/0050] Calc codebooks for 2008_002098...[2015-10-05 14:59:53.240] [DEBG] -- [   9/0050] Calc codebooks for 2008_003287...[2015-10-05 14:59:55.052] [DEBG] -- [  12/0050] Calc codebooks for 2008_004872...[2015-10-05 14:59:55.893] [DEBG] -- [  15/0050] Calc codebooks for 2008_007103...381/3584 removed...DONE in 6.984752 sec
+[2015-10-05 14:59:57.629] [DEBG] -- [   2/0050] Calc codebooks for 2008_000133...375/2844 removed...DONE in 6.046021 sec
+[2015-10-05 14:59:57.704] [DEBG] -- [   5/0050] Calc codebooks for 2008_000691...[2015-10-05 14:59:57.828] [DEBG] -- [  18/0050] Calc codebooks for 2008_008724...356/3172 removed...DONE in 4.882795 sec
+[2015-10-05 14:59:58.146] [DEBG] -- [   8/0050] Calc codebooks for 2008_002491...[2015-10-05 14:59:59.436] [DEBG] -- [  21/0050] Calc codebooks for 2009_000634...368/3584 removed...DONE in 4.907977 sec
+[2015-10-05 14:59:59.986] [DEBG] -- [  11/0050] Calc codebooks for 2008_004363...374/3584 removed...DONE in 5.541218 sec
+[2015-10-05 15:00:01.448] [DEBG] -- [  14/0050] Calc codebooks for 2008_005190...[2015-10-05 15:00:02.345] [DEBG] -- [  24/0050] Calc codebooks for 2009_002295...[2015-10-05 15:00:04.376] [DEBG] -- [  29/0050] Calc codebooks for 2009_004551...374/3584 removed...DONE in 6.783678 sec
+[2015-10-05 15:00:04.501] [DEBG] -- [   4/0050] Calc codebooks for 2008_000562...[2015-10-05 15:00:04.738] [DEBG] -- [  27/0050] Calc codebooks for 2009_003208...301/3784 removed...DONE in 7.652649 sec
+[2015-10-05 15:00:05.816] [DEBG] -- [   7/0050] Calc codebooks for 2008_002369...382/3584 removed...DONE in 8.134380 sec
+[2015-10-05 15:00:05.977] [DEBG] -- [  17/0050] Calc codebooks for 2008_008611...370/3584 removed...DONE in 8.617545 sec
+[2015-10-05 15:00:06.262] [DEBG] -- [   1/0050] Calc codebooks for 2007_008932...372/3584 removed...DONE in 6.841118 sec
+[2015-10-05 15:00:06.841] [DEBG] -- [  10/0050] Calc codebooks for 2008_003970...352/3184 removed...373/3584 removed...DONE in 5.555458 sec
+[2015-10-05 15:00:07.017] [DEBG] -- [  13/0050] Calc codebooks for 2008_005147...DONE in 7.606379 sec
+[2015-10-05 15:00:07.059] [DEBG] -- [  20/0050] Calc codebooks for 2009_000632...[2015-10-05 15:00:08.231] [DEBG] -- [  31/0050] Calc codebooks for 2009_004934...376/3584 removed...DONE in 6.669567 sec
+[2015-10-05 15:00:09.036] [DEBG] -- [  23/0050] Calc codebooks for 2009_002087...[2015-10-05 15:00:09.409] [DEBG] -- [  33/0050] Calc codebooks for 2010_000342...366/3184 removed...DONE in 6.402501 sec
+[2015-10-05 15:00:11.157] [DEBG] -- [  26/0050] Calc codebooks for 2009_002954...368/3584 removed...DONE in 5.259769 sec
+[2015-10-05 15:00:11.250] [DEBG] -- [  16/0050] Calc codebooks for 2008_008395...385/3584 removed...DONE in 5.534757 sec
+369/3584 removed...DONE in 4.758779 sec
+371/3584 removed...DONE in 7.602031 sec
+[2015-10-05 15:00:11.993] [DEBG] -- [  28/0050] Calc codebooks for 2009_004364...[2015-10-05 15:00:12.302] [DEBG] -- [  35/0050] Calc codebooks for 2010_002814...[2015-10-05 15:00:12.574] [DEBG] -- [  37/0050] Calc codebooks for 2010_004365...368/3584 removed...DONE in 8.342768 sec
+[2015-10-05 15:00:13.592] [DEBG] -- [  39/0050] Calc codebooks for 2010_005116...368/3584 removed...368/3584 removed...368/3584 removed...DONE in 6.772261 sec
+[2015-10-05 15:00:13.849] [DEBG] -- [  19/0050] Calc codebooks for 2009_000545...DONE in 7.621349 sec
+DONE in 6.872251 sec
+[2015-10-05 15:00:14.812] [DEBG] -- [  40/0050] Calc codebooks for 2010_005951...[2015-10-05 15:00:14.868] [DEBG] -- [  41/0050] Calc codebooks for 2010_006031...368/3584 removed...DONE in 6.572349 sec
+[2015-10-05 15:00:15.637] [DEBG] -- [  22/0050] Calc codebooks for 2009_000985...368/3584 removed...368/3584 removed...DONE in 6.991762 sec
+[2015-10-05 15:00:16.415] [DEBG] -- [  32/0050] Calc codebooks for 2010_000254...DONE in 5.308751 sec
+[2015-10-05 15:00:16.490] [DEBG] -- [  25/0050] Calc codebooks for 2009_002928...590/3584 removed...DONE in 8.738292 sec
+[2015-10-05 15:00:16.984] [DEBG] -- [  30/0050] Calc codebooks for 2009_004882...407/3584 removed...DONE in 5.902652 sec
+418/3584 removed...DONE in 4.820162 sec
+[2015-10-05 15:00:17.418] [DEBG] -- [  36/0050] Calc codebooks for 2010_003701...599/3184 removed...DONE in 3.823020 sec
+[2015-10-05 15:00:17.940] [DEBG] -- [  42/0050] Calc codebooks for 2010_006274...[2015-10-05 15:00:18.520] [DEBG] -- [  43/0050] Calc codebooks for 2010_006366...368/3584 removed...DONE in 7.213167 sec
+[2015-10-05 15:00:19.536] [DEBG] -- [  34/0050] Calc codebooks for 2010_001899...343/2684 removed...DONE in 4.300407 sec
+296/3784 removed...[2015-10-05 15:00:20.746] [DEBG] -- [  44/0050] Calc codebooks for 2010_006668...DONE in 8.782031 sec
+434/3584 removed...DONE in 6.182145 sec
+368/3584 removed...490/3584 removed...DONE in 7.578738 sec
+[2015-10-05 15:00:21.186] [DEBG] -- [  38/0050] Calc codebooks for 2010_004921...DONE in 4.838357 sec
+[2015-10-05 15:00:21.459] [DEBG] -- [  45/0050] Calc codebooks for 2011_000053...[2015-10-05 15:00:21.463] [DEBG] -- [  46/0050] Calc codebooks for 2011_001138...506/3484 removed...DONE in 4.148308 sec
+949/3584 removed...DONE in 6.781938 sec
+[2015-10-05 15:00:22.003] [DEBG] -- [  47/0050] Calc codebooks for 2011_001726...[2015-10-05 15:00:22.057] [DEBG] -- [  48/0050] Calc codebooks for 2011_002110...[2015-10-05 15:00:22.123] [DEBG] -- [  49/0050] Calc codebooks for 2011_002217...419/3684 removed...DONE in 6.126475 sec
+[2015-10-05 15:00:23.724] [DEBG] -- [  50/0050] Calc codebooks for 2011_004221...369/3584 removed...DONE in 7.956502 sec
+373/2684 removed...DONE in 3.516116 sec
+368/3584 removed...DONE in 7.207659 sec
+437/3584 removed...DONE in 6.920619 sec
+402/4384 removed...DONE in 9.140385 sec
+666/3584 removed...DONE in 7.273861 sec
+434/3184 removed...368/3584 removed...DONE in 7.186309 sec
+DONE in 6.775005 sec
+368/3584 removed...392/3184 removed...DONE in 7.244614 sec
+368/3584 removed...DONE in 7.428387 sec
+DONE in 8.089816 sec
+374/3584 removed...DONE in 6.516782 sec

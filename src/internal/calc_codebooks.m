@@ -19,14 +19,23 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
     info('Calculating codebooks...');
     start = tic;
 
-    [expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, NUM_PARTS);
+    %[expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, NUM_PARTS);
 
     % extract codebooks
-    codebooks = zeros([expectedCodebookCount codebookSize]);
-    bboxes = zeros([expectedCodebookCount 4]);
-    images = zeros([expectedCodebookCount 1]);
-    lastIdx = 1;
-    for fi=1:length(database)
+    % codebooks = zeros([expectedCodebookCount codebookSize]);
+    % bboxes = zeros([expectedCodebookCount 4]);
+    % images = zeros([expectedCodebookCount 1]);
+    % lastIdx = 1;
+    codebooks = cell([1 length(database)]);
+    bboxes = cell([1 length(database)]);
+    images = cell([1 length(database)]);
+    if params.naiive_integral_backend % disable parallel execution
+        numworkers = 0;
+    else
+        numworkers = Inf;
+    end
+    %for fi=1:length(database)
+    parfor (fi=1:length(database), numworkers)
         filename = database(fi).curid;
         if isfield(database(fi), 'scale_factor')
             scale_factor = database(fi).scale_factor;
@@ -78,17 +87,16 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
             %error('No codebooks for %s?\n', filename);
         end
 
-        codebooks(lastIdx:lastIdx+size(codebooks2, 1)-1,:) = codebooks2;
+        codebooks{fi} = codebooks2;
         % readjust bounding boxes
-        bboxes(lastIdx:lastIdx+size(codebooks2, 1)-1,:) = imgWindowsBB(valid_codebooks,:) / scale_factor;
-        images(lastIdx:lastIdx+size(codebooks2, 1)-1) = ones([1 size(codebooks2, 1)]) * fi;
-        lastIdx = lastIdx+size(codebooks2, 1);
+        bboxes{fi} = imgWindowsBB(valid_codebooks,:) / scale_factor;
+        images{fi} = ones([1 size(codebooks2, 1)]) * fi;
         sec = toc(tmp);
         debg('DONE in %f sec', sec, false, true);
     end
-    bboxes(images == 0, :) = [];
-    codebooks(images == 0, :) = [];
-    images(images == 0) = [];
+    bboxes = cat(1, bboxes{:});
+    codebooks = cat(1, codebooks{:});
+    images = cat(2, images{:});
 
     sec = toc(start);
     succ('DONE in %f sec', sec);

@@ -107,8 +107,8 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
         end
         codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
         %secs = zeros([1 size(bboxes, 1)]);
-        parfor bid=1:size(bboxes, 1)
-        %for bid=1:size(bboxes, 1)
+        %parfor bid=1:size(bboxes, 1)
+        for bid=1:size(bboxes, 1)
             tmp = tic;
             bb = bboxes(bid, :);
             xmin = bb(1);

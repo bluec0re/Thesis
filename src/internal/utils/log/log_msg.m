@@ -1,5 +1,5 @@
 function log_msg(newfmt, fmt, varargin)
-    if ~usejava('desktop') && ~isempty(getenv('TERM'))
+    if ~usejava('desktop') && ~isempty(getenv('TERM')) && isempty(getCurrentTask())
         newfmt = ['[\033[97m%s\033[0m] ' newfmt '\n'];
     else
         newfmt = ['[%s] ' newfmt '\n'];

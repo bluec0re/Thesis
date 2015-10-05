@@ -30,25 +30,39 @@ void mexFunction(int num_out, mxArray *outParams[],
     mxUnshareArray(inmatrix, true);
 
 
+    size_t dim_size = size[0];
+    size_t height = size[2];
+    size_t width  = size[1];
+
+
+    size_t dx = dim_size * width;
+    size_t total = dx * height;
+    size_t previous = total - dim_size;
 
     size_t i = 0;
-    /*int d,x,y;
-    for(d = 0; d < size[0]; d++) { /* codebook dimensions * /
-        for(x = 1; x < size[1]; x++) {
-            for(y = 1; y < size[2]; y++) {
-                i = y * size[0] * size[1] + x * size[0] + d;
-                if(!outmatrix[i]) {
-                    outmatrix[i] = outmatrix[i - size[0] * size[1] - size[0]];
+
+    /*
+    int d,x,y;
+    double *tmp1, *tmp2, *tmp3;
+    for(y = 1; y < height; y++) {
+        tmp1 = outmatrix + y*dx;
+        for(x = 1; x < width; x++) {
+            tmp2 = tmp1 + x * dim_size;
+            for(d = 0; d < dim_size; d++) { /* codebook dimensions * /
+                tmp3 = tmp2 + d;
+                if(tmp3[0] == 0 && tmp3[-dim_size] != 0) {
+                    fprintf(stderr, "(%lu,%lu) = %f\n", x-1, y, tmp3[-dim_size]);
+                    tmp3[0] = tmp3[-dim_size];
                 }
             }
         }
-    }*/
-    size_t dx = size[0] * size[1];
-    size_t total = dx * size[2];
-    size_t previous = total - size[0];
+    }
+*/
+
+
     for(i = dx /* skip first line */; i < total; i++) {
-        if(!outmatrix[i] && (i % dx) > size[0] /* skip first col */) {
-            outmatrix[i] = outmatrix[i - previous];
+        if(outmatrix[i] == 0 && (i % dx) >= dim_size /* skip first col */ && outmatrix[i - dim_size] != 0) {
+            outmatrix[i] = outmatrix[i - dim_size];
         }
     }
 }
