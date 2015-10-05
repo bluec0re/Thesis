@@ -272,22 +272,31 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
         end
         info('Create integral image')
         tmp = tic;
-        % removes inference information
-        %unchanged = codebook == 0;
 
-        codebook = cumsum(codebook, 3);
-        codebook = cumsum(codebook, 4);
+        if ~params.integral_backend_sum
+            codebook = cumsum(codebook, 3);
+            codebook = cumsum(codebook, 4);
+             if ~params.naiive_integral_backend && ~params.integral_backend_matlab_sparse
+                % detect difference to previous
+                I3 = circshift(codebook, [0 0 1 1]);
+                I3(:, :, 1, :) = 0;
+                I3(:, :, :, 1) = 0;
+                unchanged = codebook == I3;
+                
+                if params.integral_backend_overwrite || params.use_kdtree
+%                     I3 = circshift(codebook, [0 0 1 0]);
+%                     I3(:, :, 1, :) = 0;
+%                     unchanged = unchanged | codebook == I3;
+                    I3 = circshift(codebook, [0 0 0 1]);
+                    I3(:, :, :, 1) = 0;
+                    unchanged = unchanged | codebook == I3;
+                end
 
-        % detect difference to previous
-        I3 = circshift(codebook, [0 0 1 1]);
-        I3(1, :, 1, :) = 0;
-        I3(1, :, :, 1) = 0;
-        unchanged = codebook == I3;
-
-        codebook(unchanged) = 0;
-        debg('Removed %d entries', sum(unchanged(:)));
+                codebook(unchanged) = 0;
+                debg('Removed %d entries', sum(unchanged(:)));
+            end
+        end
         succ('Done in %fs', toc(tmp));
-%        codebook = sparse(codebook);
     end
     profile_log(params);
 end

@@ -47,7 +47,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         %imgWindowsBB = max(imgWindowsBB, 0);
         imgWindowsBB(:, 3) = min(imgWindowsBB(:, 3), w);
         imgWindowsBB(:, 4) = min(imgWindowsBB(:, 4), h);
-        
+
         imgWindowsBB = unique(imgWindowsBB, 'rows');
 
 

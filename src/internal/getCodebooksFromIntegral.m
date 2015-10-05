@@ -18,9 +18,25 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
     %codebooks = fast(integralImg, bboxes, NUM_PARTS);
     %return;
 
-    if params.naiive_integral_backend
+    if params.naiive_integral_backend || ~params.use_kdtree
         %integralImg = reshape(integralImg.I, integralImg.I_size(2:end));
-        integralImg = integralImg.I;
+        if ~params.naiive_integral_backend
+            if params.integral_backend_sum
+                I = reconstruct_matrix_by_sum(integralImg);
+            elseif params.integral_backend_overwrite
+                I = permute(reconstruct_matrix_by_overwrite(integralImg), [3 2 1]);
+            elseif params.integral_backend_matlab_sparse
+                I = full(integralImg.I);
+                I = reshape(I, integralImg.I_size);
+            else
+                I = zeros(integralImg.I_size);
+                I(integralImg.idx) = integralImg.scores;
+                I = reconstruct_matrix(I);
+            end
+            integralImg = I;
+        else
+            integralImg = integralImg.I;
+        end
 
         iis = size(integralImg);
         if size(iis, 2) == 3

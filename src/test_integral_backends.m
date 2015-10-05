@@ -9,13 +9,13 @@ log_file('integral_backend.log');
 set_log_level('debug');
 
 if ~exist('numclusters', 'var')
-    numclusters = 1000;
+    numclusters = 512;
 end
 
 
 if ~exist('database', 'var')
-    load_ex(['results/models/codebooks/integral/naiive/' num2str(numclusters) '--full-database-100-1.000-double-3-86x86.mat']);
-    %load_ex('results/models/codebooks/integral/naiive/images/1000--2007_008932-0-full-1.000-double-3-86x86.mat');
+    %load_ex(['results/models/codebooks/integral/naiive/' num2str(numclusters) '--full-database-100-1.000-double-3-86x86.mat']);
+    load_ex(['results/models/codebooks/integral/naiive/images/' num2str(numclusters) '--2007_008932-0-full-1.000-double-3-86x86.mat']);
     if ~exist('integrals', 'var')
         integrals = integral;
         clear integral;
@@ -42,12 +42,12 @@ windows = calc_windows(params, max_w, max_h, roi_w  * 0.75, roi_h * 0.75);
 [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
 
 if ~exist('database2', 'var')
-    load_ex(['results/models/codebooks/integral/sparse/' num2str(numclusters) '--full-database-100-1.000-double-3-86x86.mat']);
-    %load_ex('results/models/codebooks/integral/sparse/images/1000--2007_008932-0-full-1.000-double-3-86x86.mat');
+    %load_ex(['results/models/codebooks/integral/sparse-overwrite/' num2str(numclusters) '--full-database-100-1.000-double-3-86x86.mat']);
+    load_ex(['results/models/codebooks/integral/sparse-kd/images/' num2str(numclusters) '--2007_008932-0-full-1.000-double-3-86x86.mat']);
     if ~exist('integrals', 'var')
         integrals = integral;
+        clear integral;
     end
-    params.naiive_integral_backend = false;
     if ~isfield(integrals, 'I_size')
         sizes = cellfun(@size, {integrals.I}, 'UniformOutput', false);
         [integrals.I_size] = deal(sizes{:});
@@ -55,6 +55,9 @@ if ~exist('database2', 'var')
     database2 = integrals;
     clear integrals;
 end
+params.naiive_integral_backend = false;
+params.use_kdtree = true;
+params.integral_backend_overwrite = false;
 sizes = {database2.I_size};
 sizes = cell2mat(vertcat(sizes(:)));
 scale_factors = {database2.scale_factor};

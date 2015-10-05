@@ -728,7 +728,17 @@ function target_dir = get_target_dir(params, curid)
     if params.naiive_integral_backend
         int_backend = 'naiive';
     else
-        int_backend = 'sparse';
+        if params.use_kdtree
+            int_backend = 'sparse_kd';
+        elseif params.integral_backend_sum
+            int_backend = 'sparse_sum';
+        elseif params.integral_backend_overwrite
+            int_backend = 'sparse_overwrite';
+        elseif params.integral_backend_matlab_sparse
+            int_backend = 'sparse_matlab'
+        else
+            int_backend = 'sparse';
+        end
     end
 
     if params.use_libsvm_classification
