@@ -26,7 +26,7 @@ function demo(train, varargin)
     % print params
     debg('Params:\n%s', struct2str(params));
 
-    params = profile_start(params);
+    %params = profile_start(params);
 
     if exist('train', 'var') && train
         cluster_model = generateCluster(params);
