@@ -1,4 +1,14 @@
 function features = prepare_features(params, query_stream_set)
+%PREPARE_FEATURES load or generate features for the given stream set
+%
+%   Syntax:     features = prepare_features(params, query_stream_set)
+%
+%   Input:
+%       params - Configuration struct
+%       query_stream_set - stream set containing the files to load
+%
+%   Output:
+%       features - struct array of features
 
     if ~exist('query_stream_set', 'var')
         stream_params.stream_set_name = params.stream_name;

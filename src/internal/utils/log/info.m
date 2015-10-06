@@ -1,4 +1,13 @@
 function info(fmt, varargin)
+%INFO log a info message
+%
+%   Syntax:     info(fmt, ..., [addprefix], [addnewline])
+%
+%   Input:
+%       fmt        - Message to log. Formatting available
+%       addprefix  - optional boolean to indicate if the prefix should be prepended
+%       addnewline - optional boolean to indicate if a new line should be appended
+
     if ~any(strcmp(get_log_level(), {'DEBUG', 'INFO'}))
         return;
     end

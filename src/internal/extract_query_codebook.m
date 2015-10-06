@@ -1,6 +1,16 @@
 function query_codebooks = extract_query_codebook( params, cluster_model, query_file, roi_size )
-%EXTRACT_QUERY_CODEBOOK Summary of this function goes here
-%   Detailed explanation goes here
+%EXTRACT_QUERY_CODEBOOK extracts a query codebook based on the configuration
+%
+%   Syntax:     query_codebooks = extract_query_codebook( params, cluster_model, query_file, roi_size )
+%
+%   Input:
+%       params - Configuration struct
+%       cluster_model - Model representing the current clustering method
+%       query_file - Struct with information about the query file
+%       roi_size - Bounding box of the query part
+%
+%   Output:
+%       query_codebooks - the resulting codebook
 
     params.stream_max = 1;
 

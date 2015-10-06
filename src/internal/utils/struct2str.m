@@ -1,4 +1,15 @@
 function str = struct2str(in, recursive)
+%STRUCT2STR converts a struct into a printable string
+%
+%   Syntax:     str = struct2str(in, recursive)
+%
+%   Input:
+%       in        - the struct to print
+%       recursive - boolean to indicate a recursive print
+%
+%   Output:
+%       str - String containing a text representation of the struct
+
     if ~exist('recursive', 'var')
         recursive = false;
     end

@@ -1,9 +1,10 @@
 function windows_bb = calc_windows(params, w, h, cbw, cbh, I )
 %CALC_WINDOWS Calculates the windows wich have to be extracted in a sliding window approach
 %
-%   Syntax:     windows_bb = calc_windows( w, h, cbw, cbh, I )
+%   Syntax:     windows_bb = calc_windows(params, w, h, cbw, cbh, I )
 %
 %   Input:
+%       params - Configuration struct
 %       w - Width of the image
 %       h - Height of the image
 %       cbw - Smallest width of a window

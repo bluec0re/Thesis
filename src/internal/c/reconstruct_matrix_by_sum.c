@@ -12,19 +12,19 @@ fill_matrix(double* outmatrix, size_t x, size_t y, size_t dim, double score, mwS
 void mexFunction(int num_out, mxArray *outParams[],
                  int num_in, const mxArray *inParams[]) {
     if(num_in != 1) {
-        mexErrMsgIdAndTxt("Thesis:reconstruct_matrix_by_overwrite:num_in",
+        mexErrMsgIdAndTxt("Thesis:reconstruct_matrix_by_sum:num_in",
                           "1 Inputs required");
     }
 
     if(num_out != 1) {
-        mexErrMsgIdAndTxt("Thesis:reconstruct_matrix_by_overwrite:num_out",
+        mexErrMsgIdAndTxt("Thesis:reconstruct_matrix_by_sum:num_out",
                           "1 Output required");
     }
 
     const mxArray* integral = inParams[0]; /* remove const */
 
     if(!mxIsStruct(integral)) {
-        mexErrMsgIdAndTxt("Thesis:reconstruct_matrix_by_overwrite:invalid_datatype",
+        mexErrMsgIdAndTxt("Thesis:reconstruct_matrix_by_sum:invalid_datatype",
                           "Param datatypes: (struct)");
     }
 

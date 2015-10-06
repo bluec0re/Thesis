@@ -1,16 +1,18 @@
 function integrals = get_codebook_integrals(params, features, cluster_model, roi_size)
 %GET_CODEBOOK_INTEGRALS Get integral codebooks from given features
 %
-%   Syntax:     integrals = get_codebook_integrals(params, features, cluster_model)
+%   Syntax:     integrals = get_codebook_integrals(params, features, cluster_model, roi_size)
 %
 %   Input:
 %       params - Configuration struct
 %       features - A feature struct array. Required Fields: curid, X, bbs, I_size, scales
 %       cluster_model - A model from get_cluster
+%       roi_size - Size of the query part
 %
 %   Output:
-%       integrals - A struct array with fields: I, curid, scale_factor,
-%                   min_size, max_size
+%       integrals - A struct array with fields: I, I_size, curid, scale_factor,
+%                                               max_size, min_size, tree,
+%                                               scores, idx, coords
 
     profile_log(params);
     % cache

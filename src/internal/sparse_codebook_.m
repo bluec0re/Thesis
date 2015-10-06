@@ -1,6 +1,14 @@
 function codebook = sparse_codebook(integral, x, y)
-%SPARSE_CODEBOOK Summary of this function goes here
-%   Detailed explanation goes here
+%SPARSE_CODEBOOK Matlab implementation of the reconstruction of a kd-Tree integral image
+%
+%   Syntax:     codebook = sparse_codebook(integral, x, y)
+%
+%   Input:
+%       integral - An integral image with kd-Tree storage backend
+%       x, y     - Coordinate of requested codebook
+%
+%   Output:
+%       codebook - the reconstructed codebook
 
     codebook = zeros([1 length(integral.tree)]);
     for ci=1:length(integral.tree)
