@@ -34,10 +34,11 @@ function params = get_default_configuration()
     params.window_margin = 10; % pixels
     params.max_window_scales = 10;
     params.min_window_size = 0.5; % clip no more than percentage
-    params.use_kdtree = true;
+    params.use_kdtree = false;
     params.integral_backend_overwrite = false;
     params.integral_backend_sum = false;
     params.integral_backend_matlab_sparse = false;
+    params.precalced_windows = false;
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;

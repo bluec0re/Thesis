@@ -88,8 +88,11 @@ function database = getImageDB(params, cluster_model)
     params.class = '';
 
     all_features = prepare_features(params);
-
-    database = get_codebook_integrals(params, all_features, cluster_model);
+    if ~params.precalced_windows
+        database = get_codebook_integrals(params, all_features, cluster_model);
+    else
+        database = get_codebook_from_windows(params, all_features, cluster_model);
+    end
 end
 
 function svm_models = getSVM(params, cluster_model)
@@ -349,14 +352,19 @@ function results = searchInteractive(params, cluster_model)
         end
 
         setStatus('Loading database...');
-        if exist('database_job', 'var')
-            %[~, database] = fetchNext(database_job);
+        if ~params.precalced_windows
+            if exist('database_job', 'var')
+                %[~, database] = fetchNext(database_job);
+            else
+                database = load_database(old_params, cluster_model, roi_size);
+            end
+            setStatus('Searching in database...');
+            results = searchDatabase(old_params, database, svm_models, fit_params, pos);
         else
-            database = load_database(old_params, cluster_model, roi_size);
+            database = load_window_database(old_params, cluster_model, roi_size);
+            setStatus('Searching in database...');
+            results = searchWindowDatabase(old_params, database, svm_models, fit_params, pos);
         end
-        setStatus('Searching in database...');
-        results = searchDatabase(old_params, database, svm_models, fit_params, pos);
-
 
         % remove unnecessary fields
         cleanparams = params;
@@ -387,6 +395,17 @@ function results = searchInteractive(params, cluster_model)
         if ~isstruct(database)
             all_features = prepare_features(params);
             database = get_codebook_integrals(params, all_features, cluster_model, roi_size);
+        end
+    end
+
+    function database = load_window_database(params, cluster_model, roi_size)
+        params.feature_type = 'full';
+        params.stream_name = 'database';
+        params.class = '';
+        database = get_codebook_from_windows(params, [], cluster_model, roi_size);
+        if ~isstruct(database)
+            all_features = prepare_features(params);
+            database = get_codebook_from_windows(params, all_features, cluster_model, roi_size);
         end
     end
 end
@@ -532,7 +551,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                 scores2 = [scores2; ioscores];
                 bbs2 = [bbs2; iobbs];
                 images2 = [images2, ones([1 size(iobbs, 1)]) * image];
-                resnum = [resnum; image_only(idx)];
+                resnum = [resnum, image_only(idx)];
                 patches = [patches, 1:length(ioscores)];
             end
             [scores2, idx] = sort(scores2, 'descend');
@@ -586,6 +605,184 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
 %             result(si).patch = patchnrs(mimg(si));
 %             result(si).score = scores(si);
 %         end
+        % remove all empty results
+        if ~isempty(result) && isfield(result, 'curid')
+            result = result(~cellfun(@isempty, {result.curid}));
+            results{mi} = result;
+        else
+            err('No results for %s', model.curid);
+        end
+    end
+end
+
+function results = searchWindowDatabase(params, database, svm_models, fit_params, pos)
+%SEARCHDATABASE Search the image database with the given SVM models
+%   Stores results in the results/queries subdirectories
+%
+%   Syntax:     results = searchDatabase(params, database, svm_models, fit_params, roi)
+%
+%   Input:
+%       params - Configuration parameters
+%       database - The image database as struct array of integral codebook images
+%       svm_models - Struct array of svm models
+%       fit_params - Gaussian curve 2D Vectors to adjust the SVM scores [$\mu$, $\sigma$]
+%       roi - The region of interest [x_{min}, y_{min}, x_{max}, y_{max}]
+%
+%   Output:
+%       results - Cell array of results. Fields: curid, img, patch, score
+    profile_log(params);
+
+    bboxes = cat(1, database.bboxes);
+    codebooks = cat(1, database.codebooks);
+    images = cellfun(@(i, x) i*ones([size(x, 1) 1]), num2cell(1:50), {database.codebooks}, 'UniformOutput', false);
+    images = cat(1, images{:});
+
+    % expand bounding boxes by 1/2 of patch average
+    if params.expand_bboxes && false
+        patch_avg = ceil((max(vertcat(database.max_size)) + min(vertcat(database.min_size))) / 2 / 2);
+        patch_avg = repmat(patch_avg, [size(bboxes, 1) 2]);
+        patch_avg = patch_avg .* repmat([-1 -1 1 1], [size(bboxes, 1) 1]);
+        bboxes = bboxes + patch_avg;
+        %TODO max_w & max_h missing
+        bboxes(:, [1 3]) = max(1, min(bboxes(:, [1 3]), max_w));
+        bboxes(:, [2 4]) = max(1, min(bboxes(:, [2 4]), max_h));
+    end
+
+    % required for libsvm
+    codebooks = double(codebooks);
+    results = cell([1 length(svm_models)]);
+    for mi=1:length(svm_models)
+        model = svm_models(mi);
+
+        target_dir = get_target_dir(params, model.curid);
+        info('Classifying patches...');
+        tmp = tic;
+        scores = model.classify(params, model, codebooks);
+        succ('DONE in %f sec', toc(tmp));
+        if params.use_calibration
+            scores = adjust_scores(params, fit_params, scores);
+
+            matches = scores > -0.25;
+        else
+            matches = true([1 length(scores)]);
+        end
+        info('Found matches for %s: %d', model.curid, sum(matches));
+        scores = scores(matches);
+        mimg = images(matches);
+        umimg = unique(mimg);
+        mbbs = bboxes(matches, :);
+
+        [scores, idx] = sort(scores, 'descend');
+        mimg = mimg(idx);
+        mbbs = round(mbbs(idx, :));
+        result = struct;
+        if ~isempty(scores)
+            result = alloc_struct_array(length(scores), 'curid', 'query_curid', 'img', 'patch', 'score', 'bbox', 'filename');
+            result(length(scores)).query_curid = model.curid;
+        end
+
+        if params.use_calibration
+            for ii=1:length(umimg)
+                image = umimg(ii);
+
+                image_only = find(mimg == image);
+                I = get_image(params, database(image).curid);
+                imax_w = size(I, 2);
+                imax_h = size(I, 1);
+                iobbs = mbbs(image_only, :);
+
+                iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
+                iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
+
+                iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
+                ioscores = scores(image_only, :);
+
+
+                [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
+                info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
+                for pi=1:length(ioscores)
+                    si = image_only(idx(pi));
+                    bbs = iobbs(pi, :);
+                    bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
+                    I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                    %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
+
+                    filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
+                    imwrite(I2, filename);
+
+                    result(si).query_curid = model.curid;
+                    result(si).curid = database(image).curid;
+                    result(si).img = image;
+                    result(si).patch = pi;
+                    result(si).score = ioscores(pi);
+                    result(si).bbox = bbs;
+                    result(si).filename = filename;
+                end
+            end
+        else
+            scores2 = [];
+            bbs2 = [];
+            images2 = [];
+            resnum = [];
+            patches = [];
+            for ii=1:length(umimg)
+                image = umimg(ii);
+
+                image_only = find(mimg == image);
+                I = get_image(params, database(image).curid);
+                imax_w = size(I, 2);
+                imax_h = size(I, 1);
+                iobbs = mbbs(image_only, :);
+
+                iobbs(:, [1 3]) = min(iobbs(:, [1 3]), imax_w);
+                iobbs(:, [2 4]) = min(iobbs(:, [2 4]), imax_h);
+
+                iobbs(:, [3 4]) = iobbs(:, [3 4]) - iobbs(:, [1 2]) + 1;
+                ioscores = scores(image_only, :);
+
+
+                [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
+                info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
+                scores2 = [scores2; ioscores];
+                bbs2 = [bbs2; iobbs];
+                images2 = [images2, ones([1 size(iobbs, 1)]) * image];
+                resnum = [resnum; image_only(idx)];
+                patches = [patches, 1:length(ioscores)];
+            end
+            [scores2, idx] = sort(scores2, 'descend');
+
+            % first 100
+            scores2 = scores2(1:min([100, length(scores2)]));
+            idx = idx(1:min([100, length(idx)]));
+
+            bbs2 = bbs2(idx, :);
+            images2 = images2(idx);
+            resnum = resnum(idx);
+            patches = patches(idx);
+
+            for i=1:length(resnum)
+                si = resnum(i);
+                pi = patches(i);
+                image = images2(i);
+                I = get_image(params, database(image).curid);
+                bbs = bbs2(i, :);
+                bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
+                I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
+
+                filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores2(i), image, pi);
+                imwrite(I2, filename);
+
+                result(si).query_curid = model.curid;
+                result(si).curid = database(image).curid;
+                result(si).img = image;
+                result(si).patch = pi;
+                result(si).score = scores2(i);
+                result(si).bbox = bbs;
+                result(si).filename = filename;
+            end
+        end
+
         % remove all empty results
         if ~isempty(result) && isfield(result, 'curid')
             result = result(~cellfun(@isempty, {result.curid}));
@@ -725,7 +922,9 @@ function target_dir = get_target_dir(params, curid)
         expand_bbs = 'nonexpanded';
     end
 
-    if params.naiive_integral_backend
+    if params.precalced_windows
+        int_backend = 'window';
+    elseif params.naiive_integral_backend
         int_backend = 'naiive';
     else
         if params.use_kdtree
