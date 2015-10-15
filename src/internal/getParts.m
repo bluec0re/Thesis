@@ -27,7 +27,7 @@ function [ xsteps, ysteps ] = getParts( minX, minY, maxX, maxY, NUM_PARTS)
         return;
     end
 
-    splitX = floor(sqrt(NUM_PARTS));
+    splitX = round(sqrt(NUM_PARTS));
     splitY = ceil(sqrt(NUM_PARTS));
 
     stepX = (maxX - minX) / splitX;

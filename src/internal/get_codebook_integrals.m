@@ -229,8 +229,8 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                     [cb, x, y] = ind2sub(Is(2:end), find(remaining));
                     coords = [x, y, cb];
 
-                    min_values = min(coords(:, [1 2]), [], 2);
-                    [~, idx] = sort(min_values);
+                    sum_values = coords(:, 1) + coords(:, 2);
+                    [~, idx] = sort(sum_values);
                     coords = coords(idx, :);
                     scores = scores(idx, :);
 
