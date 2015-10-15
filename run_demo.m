@@ -17,7 +17,7 @@ function run_demo(skip_runs, log_file_name)
     integral_scales = {1, 0.75};
     codebook_type = {'double', 'single'};
     libsvm_classification = {false};
-%    libsvm_classification = {true, false};
+    libsvm_classification = {true, false};
     expand_bboxes = {true, false};
     naiive_integral_backend = {false, true};
 

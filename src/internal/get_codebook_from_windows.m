@@ -32,7 +32,6 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
     if ~exist('roi_size', 'var')
         roi_size = [];
     end
-    keyboard;
     cachename = get_cache_name(params, roi_size, CACHE_FILE);
 
 
@@ -257,8 +256,8 @@ function cachename = get_cache_name(params, roi_size, create_dir)
         if ~isempty(roi_size)
             ratio = roi_size(1) / roi_size(2);
             ratios = [0.5, 0.75, 1, 1.333333, 2];
-            ratios = abs(ratios - ratio);
-            [~, idx] = min(ratios);
+            ratios2 = abs(ratios - ratio);
+            [~, idx] = min(ratios2);
             cachename = sprintf(strrep(cachename, '%d', '%%d'), ratios(idx));
             try
                 files = get_possible_cache_files(cachename);
@@ -330,8 +329,8 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
     if ~isempty(roi_size)
         ratio = roi_size(1) / roi_size(2);
         ratios = [0.5, 0.75, 1, 1.333333, 2];
-        ratios = abs(ratios - ratio);
-        [~, idx] = min(ratios);
+        ratios2 = abs(ratios - ratio);
+        [~, idx] = min(ratios2);
         imgcachename = sprintf(strrep(imgcachename, '%d', '%%d'), ratios(idx));
     end
 end

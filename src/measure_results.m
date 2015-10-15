@@ -126,22 +126,24 @@ function performance_matrix(params, measures, apfield)
                 hold off;
                 ylim([0 1]);
                 %xlim([0 size(aps, 2)+1]);
-                scale_axis = gca;
+                %scale_axis = gca;
+                cluster_axis = gca;
                 sqz = 0.03;
-                set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
-                cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+                %set(scale_axis, 'Position', get(scale_axis, 'Position') + [0 sqz 0 -sqz ]);
+                %cluster_axis = axes('Position', get(scale_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
+                set(cluster_axis, 'Position', get(cluster_axis, 'Position') + [0 sqz 0 -sqz]);
                 backend_axis = axes('Position', get(cluster_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
                 type_axis = axes('Position', get(backend_axis, 'Position') .* [1 1 1 0.001] - [0 sqz 0 0],'Color','none');
 
 
-                scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
-                scale_axis.XTick = [1:length(aps)];
+                %scale_axis.XTickLabel = repmat(uintegral_scales, [1 length(aps) / length(uintegral_scales)]);
+                %scale_axis.XTick = [1:length(aps)];
 
                 cluster_axis.XTickLabel = repmat(uclusters, [1 length(aps) / length(uintegral_scales) / length(uclusters)]);
                 observations_per_cluster = length(uintegral_scales);
                 cluster_axis.XTick = [1:(length(ucodebook_types) * length(uclusters) * length(ubackends))] .* observations_per_cluster - (observations_per_cluster-1) / 2;
 
-                backend_axis.XTickLabel = repmat(ubackends, [1 length(aps) / length(uintegral_scales) / length(uclusters) / length(ubackends)]);
+                backend_axis.XTickLabel = repmat(cellfun(@(x) strrep(x, '_', '-'), ubackends, 'UniformOutput', false), [1 length(aps) / length(uintegral_scales) / length(uclusters) / length(ubackends)]);
                 observations_per_backend = length(uintegral_scales) * length(uclusters);
                 backend_axis.XTick = [1:(length(ucodebook_types) * length(ubackends))] .* observations_per_backend - (observations_per_backend-1) / 2;
 
@@ -149,9 +151,11 @@ function performance_matrix(params, measures, apfield)
                 observations_per_type = length(aps)/length(ucodebook_types);
                 type_axis.XTick = [1:length(ucodebook_types)] .* observations_per_type - (observations_per_type-1) / 2;
 
-                linkaxes([scale_axis, backend_axis, cluster_axis, type_axis]);
+                %linkaxes([scale_axis, backend_axis, cluster_axis, type_axis]);
+                linkaxes([backend_axis, cluster_axis, type_axis]);
                 % restorce gca for title
-                axes(scale_axis);
+                %axes(scale_axis);
+                axes(cluster_axis);
                 set(f, 'Visible', 'Off');
                 title(strrep(restrict_to, '_', '\_'), 'FontSize', 8);
                 saveas(f, [srcdir filesep sprintf('performance_matrix-%s-%04d.pdf', scoring, pi)]);
