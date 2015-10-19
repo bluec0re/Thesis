@@ -44,7 +44,7 @@ function features = whiten_features( params, features )
         fprintf(1,'whiten_features: length of stream=%05d\n', length(features));
         return;
     end
-    
+
     if isempty(features)
         return;
     end
@@ -81,7 +81,7 @@ function features = whiten_features( params, features )
     end
     profile_log(params);
 
-    params.neg_model = neg_model;
+    params.cache.neg_model = neg_model;
 
     if CACHE_FILE && params.stream_max > 1
         save_ex(cachename, 'features');
@@ -89,7 +89,7 @@ function features = whiten_features( params, features )
 end
 
 function neg_model = get_neg_model(params)
-    if ~isfield(params, 'neg_model') || isempty(params.neg_model)
+    if ~isfield(params, 'cache') || ~isfield(params.cache, 'neg_model') || isempty(params.cache.neg_model)
         neg_model = get_full_neg_model;
 %         fprintf('loading Neg Model...');
 %         start = tic;
@@ -97,6 +97,6 @@ function neg_model = get_neg_model(params)
 %         sec = toc(start);
 %         fprintf(1, '%f sec\n', sec);
     else
-        neg_model = params.neg_model;
+        neg_model = params.cache.neg_model;
     end
 end

@@ -45,7 +45,7 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
         cachename = strrep(cachename, '.mat', sprintf('-%dx%d.mat', query_codebooks.size(1), query_codebooks.size(2)));
     end
 
-    if CACHE_FILE && fileexists(cachename) %&& false % only save
+    if CACHE_FILE && fileexists(cachename) && false % only save
         load_ex(cachename);
         svm_models = addHandlers(svm_models);
         fprintf(1,'get_svms: length of stream=%05d\n', length(svm_models));
@@ -62,7 +62,7 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
     end
 
     if size(neg_codebooks, 1) < size(neg_codebooks, 2)
-        neg_codebooks = neg_codebooks';
+        neg_codebooks = neg_codebooks';clear NEG_CB
     end
 
     info('Using %d negative samples', size(neg_codebooks, 1));

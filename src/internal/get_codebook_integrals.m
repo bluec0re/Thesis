@@ -36,7 +36,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     cachename = get_cache_name(params, roi_size, CACHE_FILE);
 
     % test if file was already loaded
-    if evalin('base', ['exist(''LAST_DB'', ''var'') && strcmp(LAST_DB, ''' cachename ''');']);
+    if params.memory_cache && evalin('base', ['exist(''LAST_DB'', ''var'') && strcmp(LAST_DB, ''' cachename ''');']);
         debg('++ Using preloaded Database %s', cachename);
         integrals = evalin('base', 'DB;');
         return;

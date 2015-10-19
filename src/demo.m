@@ -139,6 +139,7 @@ function results = searchInteractive(params, cluster_model)
     % start loading of
     profile_log(params);
     startpath = strrep(params.dataset.imgpath, '%s', params.default_query_file);
+    start_time = tic;
 
     if usejava('desktop')
         neg_codebooks_job = parfeval(@get_neg_codebooks, 1, params);
@@ -316,12 +317,12 @@ function results = searchInteractive(params, cluster_model)
 
         setStatus('Loading neg model for whitening...');
         profile_log(params);
-        if evalin('base', 'exist(''NEG_MODEL'', ''var'');')
+        if params.memory_cache && evalin('base', 'exist(''NEG_MODEL'', ''var'');')
             debg('++ Using preloaded negative model');
-            params.neg_model = evalin('base', 'NEG_MODEL;');
+            params.cache.neg_model = evalin('base', 'NEG_MODEL;');
         else
-            params.neg_model = get_full_neg_model();
-            assignin('base', 'NEG_MODEL', params.neg_model);
+            params.cache.neg_model = get_full_neg_model();
+            assignin('base', 'NEG_MODEL', params.cache.neg_model);
         end
         profile_log(params);
         setStatus('Filtering query features...');
@@ -338,11 +339,12 @@ function results = searchInteractive(params, cluster_model)
             debg('Got %d codebooks', length(query_codebooks));
 
             setStatus('Train SVM...');
-            params.dataset.localdir = old_params.dataset.localdir;
+            params.dataset.localdir = [];%old_params.dataset.localdir;
             svm_models = get_svms(params, query_codebooks, neg_codebooks);
         end
         params.dataset.localdir = [];
         clear neg_codebooks;
+
 
         if params.use_calibration
             setStatus('Calibrate...');
@@ -351,6 +353,7 @@ function results = searchInteractive(params, cluster_model)
             fit_params = [];
         end
 
+        params = rmfield(params, 'cache');
         setStatus('Loading database...');
         if ~params.precalced_windows
             if exist('database_job', 'var')
@@ -367,17 +370,10 @@ function results = searchInteractive(params, cluster_model)
         end
 
         % remove unnecessary fields
-        cleanparams = params;
-        fields = fieldnames(params);
-        for fi=1:length(fields)
-            field = fields{fi};
-            v = params.(field);
-            if isstruct(v) || isa(v, 'function_handle') || iscell(v)
-                cleanparams = rmfield(cleanparams, field);
-            end
-        end
+        cleanparams = clean_struct(params, {'cache', 'profile'});
 
-        save_ex([target_dir filesep 'results.mat'], 'results', 'cleanparams');
+        elapsed_time = toc(start_time);
+        save_ex([target_dir filesep 'results.mat'], 'results', 'cleanparams', 'elapsed_time');
         setStatus('DONE!');
         profile_stop(params);
 
@@ -436,7 +432,7 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
     roi_w = pos(3) - pos(1) + 1;
     roi_h = pos(4) - pos(2) + 1;
     windows = calc_windows(params, max_w, max_h, roi_w  * 0.75, roi_h * 0.75);
-    [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts );
+    [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts, svm_models);
     % save space
     % database = rmfield(database, 'I');
     % if isfield(database, 'tree')
@@ -509,7 +505,11 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                     si = image_only(idx(pi));
                     bbs = iobbs(pi, :);
                     bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
-                    I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                    %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                    blend_mask = true([size(I, 1) size(I, 2)]);
+                    blend_mask(bbs(2):bbs(4), bbs(1):bbs(3)) = false;
+                    overlay = zeros([size(I, 1) size(I, 2)], 'uint8');
+                    I2 = alpha_blend(I, overlay, 0.4, blend_mask);
                     %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                     filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
@@ -572,7 +572,11 @@ function results = searchDatabase(params, database, svm_models, fit_params, pos)
                 I = get_image(params, database(image).curid);
                 bbs = bbs2(i, :);
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
-                I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                blend_mask = true([size(I, 1) size(I, 2)]);
+                blend_mask(bbs(2):bbs(4), bbs(1):bbs(3)) = false;
+                overlay = zeros([size(I, 1) size(I, 2)], 'uint8');
+                I2 = alpha_blend(I, overlay, 0.4, blend_mask);
                 %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                 filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores2(i), image, pi);
@@ -704,7 +708,11 @@ function results = searchWindowDatabase(params, database, svm_models, fit_params
                     si = image_only(idx(pi));
                     bbs = iobbs(pi, :);
                     bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
-                    I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                    %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                    blend_mask = true([size(I, 1) size(I, 2)]);
+                    blend_mask(bbs(2):bbs(4), bbs(1):bbs(3)) = false;
+                    overlay = zeros([size(I, 1) size(I, 2)], 'uint8');
+                    I2 = alpha_blend(I, overlay, 0.4, blend_mask);
                     %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                     filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
@@ -767,7 +775,11 @@ function results = searchWindowDatabase(params, database, svm_models, fit_params
                 I = get_image(params, database(image).curid);
                 bbs = bbs2(i, :);
                 bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
-                I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
+                blend_mask = true([size(I, 1) size(I, 2)]);
+                blend_mask(bbs(2):bbs(4), bbs(1):bbs(3)) = false;
+                overlay = zeros([size(I, 1) size(I, 2)], 'uint8');
+                I2 = alpha_blend(I, overlay, 0.4, blend_mask);
                 %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                 filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores2(i), image, pi);
@@ -934,7 +946,7 @@ function target_dir = get_target_dir(params, curid)
         elseif params.integral_backend_overwrite
             int_backend = 'sparse_overwrite';
         elseif params.integral_backend_matlab_sparse
-            int_backend = 'sparse_matlab'
+            int_backend = 'sparse_matlab';
         else
             int_backend = 'sparse';
         end
@@ -946,7 +958,14 @@ function target_dir = get_target_dir(params, curid)
         scoring = 'matlab';
     end
 
+    if params.inverse_search
+        filter = 'inverse';
+    else
+        filter = 'no';
+    end
+
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
+                filesep filter '-filter'...
                 filesep scoring '-Scoring'...
                 filesep int_backend '-Backend'...
                 filesep num2str(params.clusters) '-Cluster'...

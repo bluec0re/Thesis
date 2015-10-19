@@ -39,6 +39,9 @@ function params = get_default_configuration()
     params.integral_backend_sum = false;
     params.integral_backend_matlab_sparse = false;
     params.precalced_windows = false;
+    params.inverse_search = false;
+    params.memory_cache = true;
+    params.use_threading = true;
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;

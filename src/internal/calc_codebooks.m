@@ -1,5 +1,4 @@
-
-function [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, NUM_PARTS )
+function [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, NUM_PARTS, svm_model)
 %CALC_CODEBOOKS Extracts codebooks and bounding boxes from a given image database
 %
 %   Syntax:     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, num_parts )
@@ -16,6 +15,11 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 %       images - A 1xN dimensional index vector for assigning codebooks to images
 
     profile_log(params);
+
+    if ~exist('svm_model', 'var')
+        svm_model = [];
+    end
+
     info('Calculating codebooks...');
     start = tic;
 
@@ -29,23 +33,37 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
     codebooks = cell([1 length(database)]);
     bboxes = cell([1 length(database)]);
     images = cell([1 length(database)]);
-    if params.naiive_integral_backend % disable parallel execution
+    if params.naiive_integral_backend || ~params.use_threading % disable parallel execution
         numworkers = 0;
     else
         numworkers = Inf;
     end
-    %for fi=1:length(database)
-    parfor (fi=1:length(database), numworkers)
-        filename = database(fi).curid;
-        if isfield(database(fi), 'scale_factor')
-            scale_factor = database(fi).scale_factor;
+
+    cleanparams = clean_struct(params, {'cache', 'profile', 'esvm_default_params', 'dataset'});
+    if isfield(svm_model, 'model')
+        clean_svm_model.model.SVs = svm_model.model.SVs;
+        clean_svm_model.model.sv_coef = svm_model.model.sv_coef;
+    end
+    if isfield(svm_model, 'codebook')
+        clean_svm_model.codebook = svm_model.codebook;
+    end
+    if ~exist('clean_svm_model', 'var')
+        clean_svm_model = svm_model;
+    end
+    dblen = length(database);
+    %for fi=1:dblen
+    parfor (fi=1:dblen, numworkers)
+        integral = database(fi);
+        filename = integral.curid;
+        if isfield(integral, 'scale_factor')
+            scale_factor = integral.scale_factor;
         else
             scale_factor = 1;
         end
 
-        debg('-- [%4d/%04d] Calc codebooks for %s...', fi, length(database), filename, false);
+        debg('-- [%4d/%04d] Calc codebooks for %s...', fi, dblen, filename, false);
         tmp = tic;
-        s = database(fi).I_size;
+        s = integral.I_size;
         w = s(3);
         h = s(4);
 
@@ -59,9 +77,12 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 
         imgWindowsBB = unique(imgWindowsBB, 'rows');
 
+        if cleanparams.inverse_search
+            imgWindowsBB = filter_windows_by_inverse_search(cleanparams, integral, imgWindowsBB, clean_svm_model);
+        end
 
         % codebook x scales x amount
-        codebooks3 = getCodebooksFromIntegral(params, database(fi), imgWindowsBB, NUM_PARTS);
+        codebooks3 = getCodebooksFromIntegral(cleanparams, integral, imgWindowsBB, NUM_PARTS);
         [cbdim, scales, cbnum] = size(codebooks3);
         % amount * scales x codebook
         codebooks2 = zeros([cbnum * scales, cbdim]);
