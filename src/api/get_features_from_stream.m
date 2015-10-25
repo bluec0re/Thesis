@@ -44,9 +44,18 @@ function features = get_features_from_stream( params, stream )
                      basedir, params.class,...
                      type, params.stream_name, params.stream_max);
 
+    if params.memory_cache && evalin('base', ['exist(''LAST_FEAT'', ''var'') && strcmp(LAST_FEAT, ''' cachename ''')'])
+        features = evalin('base', 'FEAT');
+        return;
+    end
+
     if CACHE_FILE && fileexists(cachename) && params.stream_max > 1
         load_ex(cachename, 'features');
         fprintf(1,'get_features_from_stream: length of stream=%05d\n', length(features));
+        if params.memory_cache
+            assignin('base', 'LAST_FEAT', cachename);
+            assignin('base', 'FEAT', features);
+        end
         return;
     end
 

@@ -42,6 +42,7 @@ function params = get_default_configuration()
     params.inverse_search = false;
     params.memory_cache = true;
     params.use_threading = true;
+    params.window_prefilter = false;
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;

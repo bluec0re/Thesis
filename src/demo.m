@@ -12,6 +12,7 @@ function demo(train, varargin)
     dbstop if error;
 %    dbstop in demo at 252;
     addpath(genpath('vendors'));
+    addpath(genpath('src/api'));
     addpath(genpath('src/internal'));
 
     params = get_default_configuration;
@@ -89,9 +90,19 @@ function database = getImageDB(params, cluster_model)
 
     all_features = prepare_features(params);
     if ~params.precalced_windows
-        database = get_codebook_integrals(params, all_features, cluster_model);
+        if nargout > 0
+            database = get_codebook_integrals(params, all_features, cluster_model);
+        else
+            fprintf('Generate only\n');
+            get_codebook_integrals(params, all_features, cluster_model);
+        end
     else
-        database = get_codebook_from_windows(params, all_features, cluster_model);
+        if nargout > 0
+            database = get_codebook_from_windows(params, all_features, cluster_model);
+        else
+            fprintf('Generate only\n');
+            get_codebook_from_windows(params, all_features, cluster_model);
+        end
     end
 end
 
@@ -320,7 +331,7 @@ function results = searchInteractive(params, cluster_model)
         if params.memory_cache && evalin('base', 'exist(''NEG_MODEL'', ''var'');')
             debg('++ Using preloaded negative model');
             params.cache.neg_model = evalin('base', 'NEG_MODEL;');
-        else
+        elseif ~params.query_from_integral
             params.cache.neg_model = get_full_neg_model();
             assignin('base', 'NEG_MODEL', params.cache.neg_model);
         end
@@ -353,7 +364,9 @@ function results = searchInteractive(params, cluster_model)
             fit_params = [];
         end
 
-        params = rmfield(params, 'cache');
+        if isfield(params, 'cache')
+            params = rmfield(params, 'cache');
+        end
         setStatus('Loading database...');
         if ~params.precalced_windows
             if exist('database_job', 'var')
@@ -958,17 +971,20 @@ function target_dir = get_target_dir(params, curid)
         scoring = 'matlab';
     end
 
-    if params.inverse_search
+    if params.window_prefilter
+        filter = 'window';
+    elseif params.inverse_search
         filter = 'inverse';
     else
         filter = 'no';
     end
 
     target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
-                filesep filter '-filter'...
+                filesep filter '-Filter'...
                 filesep scoring '-Scoring'...
                 filesep int_backend '-Backend'...
                 filesep num2str(params.clusters) '-Cluster'...
+                filesep num2str(params.parts) '-Parts'...
                 filesep num2str(params.stream_max) '-Imgs' filesep...
                 num2str(params.integrals_scale_factor) '-IntScale' filesep...
                 params.codebook_type filesep...

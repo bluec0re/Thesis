@@ -2,7 +2,7 @@
 #default: sparse_codebook_integral.mexa64
 default: all
 
-all: sparse_codebook_integral.mexa64 sparse_codebook.mexa64 sparse_codebook_old.mexa64 reconstruct_matrix.mexa64 reconstruct_matrix_by_sum.mexa64 reconstruct_matrix_by_overwrite.mexa64
+all: sparse_codebook_integral.mexa64 sparse_codebook.mexa64 sparse_codebook_old.mexa64 reconstruct_matrix.mexa64 reconstruct_matrix_by_sum.mexa64 reconstruct_matrix_by_overwrite.mexa64 filter_windows_kdtree.mexa64
 
 sparse_codebook.mexa64: sparse_codebook.o calc_codebook.o
 	mex $+ -O
@@ -30,6 +30,9 @@ calc_codebook.o: calc_codebook.cpp calc_codebook.h
 
 %.o: %.c
 	mex -c -O $?
+
+%.mexa64: %.o
+	mex $+ -O
 
 clean:
 	@rm -f *.mexa64 *.o

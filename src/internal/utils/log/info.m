@@ -12,11 +12,13 @@ function info(fmt, varargin)
         return;
     end
 
+    w = warning('off', 'parallel:cluster:GetCurrentTaskFailed');
     if ~usejava('desktop') && ~isempty(getenv('TERM')) && isempty(getCurrentTask())
         newfmt = '[\033[94mINFO\033[0m] %s';
     else
         newfmt = '[INFO] %s';
     end
+    warning(w);
 
     log_msg(newfmt, fmt, varargin{:});
 end

@@ -12,11 +12,13 @@ function succ(fmt, varargin)
         return;
     end
 
+    w = warning('off', 'parallel:cluster:GetCurrentTaskFailed');
     if ~usejava('desktop') && ~isempty(getenv('TERM')) && isempty(getCurrentTask())
         newfmt = '[\033[92mSUCC\033[0m] %s';
     else
         newfmt = '[SUCC] %s';
     end
+    warning(w);
 
     log_msg(newfmt, fmt, varargin{:});
 end

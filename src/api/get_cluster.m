@@ -164,7 +164,7 @@ function codebook = feature2codebook(model, params, feature)
     end
 end
 
-function [codebook, scales] = feature2codebookintegral_naiive(model, params, feature)
+function [codebook, scales, checkpoints] = feature2codebookintegral_naiive(model, params, feature)
 %FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
 %
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
@@ -218,9 +218,12 @@ function [codebook, scales] = feature2codebookintegral_naiive(model, params, fea
         codebook = cumsum(codebook, 4);
     end
     profile_log(params);
+    if nargout > 2
+        checkpoints = [];
+    end
 end
 
-function [codebook, scales] = feature2codebookintegral(model, params, feature)
+function [codebook, scales, checkpoints] = feature2codebookintegral(model, params, feature)
 %FEATURE2CODEBOOK Calculates a codebook integral from a given feature struct
 %
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
@@ -242,6 +245,7 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
         codebook = single(codebook);
     end
 
+    checkpoints = false([params.codebook_scales_count size(model.centroids, 1) feature.I_size(2) feature.I_size(1)]);
     if ~isempty(feature.X)
         bbs = round(feature.bbs);
         x = round((bbs(:, 1) + bbs(:, 3)) / 2);
@@ -270,6 +274,7 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
             sec = toc(tmp);
             succ('DONE in %fs', sec);
         end
+        checkpoints = codebook ~= 0;
         info('Create integral image')
         tmp = tic;
 
@@ -283,7 +288,7 @@ function [codebook, scales] = feature2codebookintegral(model, params, feature)
                     I3(:, :, 1, :) = 0;
                     I3(:, :, :, 1) = 0;
                     unchanged = codebook == I3;
-                    
+
 %                     I3 = circshift(codebook, [0 0 1 0]);
 %                     I3(:, :, 1, :) = 0;
 %                     unchanged = unchanged | codebook == I3;

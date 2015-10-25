@@ -37,7 +37,13 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         numworkers = 0;
     else
         numworkers = Inf;
+        if isempty(gcp('nocreate'))
+            parpool;
+        end
+        p = gcp('nocreate');
+        numworkers = min(numworkers, p.NumWorkers);
     end
+    debg('Parallel workers: %f', numworkers);
 
     cleanparams = clean_struct(params, {'cache', 'profile', 'esvm_default_params', 'dataset'});
     if isfield(svm_model, 'model')
@@ -82,7 +88,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         end
 
         % codebook x scales x amount
-        codebooks3 = getCodebooksFromIntegral(cleanparams, integral, imgWindowsBB, NUM_PARTS);
+        [codebooks3, imgWindowsBB] = getCodebooksFromIntegral(cleanparams, integral, imgWindowsBB, NUM_PARTS, clean_svm_model);
         [cbdim, scales, cbnum] = size(codebooks3);
         % amount * scales x codebook
         codebooks2 = zeros([cbnum * scales, cbdim]);

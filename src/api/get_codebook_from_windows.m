@@ -36,8 +36,10 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
 
 
     if CACHE_FILE && fileexists(cachename)
-        load_ex(cachename);
-        fprintf(1,'get_codebook_from_windows: length of stream=%05d\n', length(features));
+        if nargout > 0
+            load_ex(cachename);
+            fprintf(1,'get_codebook_from_windows: length of stream=%05d\n', length(features));
+        end
         return;
     end
 

@@ -8,12 +8,13 @@ function log_msg(newfmt, fmt, varargin)
 %       fmt        - Message to log. Formatting available
 %       addprefix  - optional boolean to indicate if the prefix should be prepended
 %       addnewline - optional boolean to indicate if a new line should be appended
-
+    w = warning('off', 'parallel:cluster:GetCurrentTaskFailed');
     if ~usejava('desktop') && ~isempty(getenv('TERM')) && isempty(getCurrentTask())
         newfmt = ['[\033[97m%s\033[0m] ' newfmt '\n'];
     else
         newfmt = ['[%s] ' newfmt '\n'];
     end
+    warning(w);
 
     if length(varargin) > 1 && islogical(varargin{end}) && islogical(varargin{end-1}) && varargin{end-1} == false
         % no prefix

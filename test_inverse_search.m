@@ -96,7 +96,7 @@ mkdir('results/reverse_search');
 if ~exist('integrals', 'var')
     load_ex(['results/models/codebooks/integral/naiive/512--full-database-100-1.000-double-3-211x211.mat']);
 end
-for ii=1%length(integrals)
+for ii=1:length(integrals)
     integral = integrals(ii);
     imid = integral.curid;
     I = squeeze(integral.I);
@@ -126,17 +126,14 @@ for ii=1%length(integrals)
     mask = (~I5 | I6 | I4)';
     mask = (~I5 | I4)';
     s = size(img);
-    img_1 = squeeze(img(:, :, 1));
-    img_1(mask(:)) = 0 + 0.4 * img_1(mask(:));
-    img_2 = squeeze(img(:, :, 2));
-    img_2(mask(:)) = 0 + 0.4 * img_2(mask(:));
-    img_3 = squeeze(img(:, :, 3));
-    img_3(mask(:)) = 0 + 0.4 * img_3(mask(:));
-    img_1 = reshape(img_1, [s(1:2) 1]);
-    img_2 = reshape(img_2, [s(1:2) 1]);
-    img_3 = reshape(img_3, [s(1:2) 1]);
-    img2 = cat(3, img_1, img_2, img_3);
+    blend1 = alpha_blend(zeros(s(1:2), class(img)), ones(s(1:2), class(img))*255, 0, I4');
+    blend2 = alpha_blend(zeros(s(1:2), class(img)), ones(s(1:2), class(img))*255, 0, ~I5');
+    blend = zeros(s, class(img));
+    blend(:, :, 1) = blend1;
+    blend(:, :, 2) = blend2;
+    img2 = alpha_blend(img, blend, 0.4, mask);
     imwrite(img2, sprintf('results/reverse_search/%s-%s.jpg', params.default_query_file, imid));
+    continue;
 
     figure(ii);
     x = In3;% - In3;

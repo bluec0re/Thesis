@@ -1,4 +1,4 @@
-function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_PARTS )
+function [codebooks, bboxes] = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_PARTS, svm_model)
 %GETCODEBOOKSFROMINTEGRAL Extract codebooks from a single integral image
 %
 %   Syntax:     codebooks = getCodebooksFromIntegral(params, integral_img, bboxes, num_parts)
@@ -17,6 +17,11 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
     % not multiscale ready
     %codebooks = fast(integralImg, bboxes, NUM_PARTS);
     %return;
+
+    if params.window_prefilter
+        weight = svm_model.model.SVs' * svm_model.model.sv_coef;
+        relevant_dimensions = find(weight >= mean(weight(weight > 0)));
+    end
 
     if params.naiive_integral_backend || ~params.use_kdtree
         %integralImg = reshape(integralImg.I, integralImg.I_size(2:end));
@@ -94,7 +99,6 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
             codebooks(:, :, bid) = reshape(codebook, [features * NUM_PARTS scales 1]);
         end
     else
-
         iis = integralImg.I_size;
         if size(iis, 2) == 3 % never happens atm
             features = iis(1);
@@ -105,6 +109,72 @@ function codebooks = getCodebooksFromIntegral(params, integralImg, bboxes, NUM_P
             scales = iis(1);
             features = iis(2);
         end
+
+        if params.window_prefilter && params.use_kdtree && ~params.naiive_integral_backend
+            previous = size(bboxes, 1);
+            debg('%d required dimensions...', length(relevant_dimensions), false, false);
+
+            if params.parts == 1
+                votes = zeros([1 size(bboxes, 1)]);
+                for tree=integralImg.small_tree(relevant_dimensions)
+                    if isempty(tree.x)
+                        continue
+                    end
+                    for bid=1:size(bboxes, 1)
+                        bbox = bboxes(bid, :);
+                        x = tree.x(tree.x(:, 1) >= bbox(1) & tree.x(:, 1) <= bbox(3), [2 3]);
+                        if ~isempty(x)
+                            y = tree.y(x(1, 1):x(end, 2), 1);
+                            %votes(bid) = sum(y >= bbox(2) & y <= bbox(4));
+                            if any(y >= bbox(2) & y <= bbox(4))
+                                votes(bid) = votes(bid) + 1;
+                            end
+                        end
+                    end
+                end
+            else
+                votes = zeros([params.parts size(bboxes, 1)]);
+                xParts = round(sqrt(params.parts));
+                yParts = ceil(sqrt(params.parts));
+                for p=1:params.parts
+                    rd = relevant_dimensions - features * (p-1);
+                    rd(rd <= 0 | rd > features) = [];
+                    for tree=integralImg.small_tree(rd)
+                        if isempty(tree.x)
+                            continue
+                        end
+                        for bid=1:size(bboxes, 1)
+                            bbox = bboxes(bid, :);
+                            minX = bbox(1);
+                            maxX = bbox(3);
+                            minY = bbox(2);
+                            maxY = bbox(4);
+
+                            diffX = (maxX - minX)/xParts;
+                            diffY = (maxY - minY)/yParts;
+                            minY = minY + diffY * floor(p / xParts);
+                            maxY = minY + diffY * (floor(p / xParts)+1);
+                            minX = minX + diffX * mod(p, xParts);
+                            maxX = minX + diffX * mod(p+1,xParts);
+
+                            x = tree.x(tree.x(:, 1) >= minX & tree.x(:, 1) <= maxX, [2 3]);
+                            if ~isempty(x)
+                                y = tree.y(x(1, 1):x(end, 2), 1);
+                                if any(y >= minY & y <= maxY)
+                                    votes(p, bid) = votes(p, bid) + 1;
+                                end
+                            end
+                        end
+                    end
+                end
+                votes = sum(votes, 1);
+            end
+            debg('Max votes: %d...', max(votes), false, false);
+            % [~, votes] = filter_windows_kdtree(integralImg, bboxes', relevant_dimensions, params.parts, features);
+            bboxes = bboxes(votes>0, :);
+            debg('Removed %4d/%04d windows...', previous-size(bboxes, 1), previous, false, false);
+        end
+
         codebooks = zeros([features * NUM_PARTS scales size(bboxes, 1)]);
         %secs = zeros([1 size(bboxes, 1)]);
         %parfor bid=1:size(bboxes, 1)

@@ -13,6 +13,8 @@ function query_codebooks = extract_query_codebook( params, cluster_model, query_
 %       query_codebooks - the resulting codebook
 
     params.stream_max = 1;
+    params.window_prefilter = false;
+    params.inverse_search = false;
 
     bbox = query_file.bbox;
     if ~exist('roi_size', 'var')
@@ -21,7 +23,13 @@ function query_codebooks = extract_query_codebook( params, cluster_model, query_
 
     if params.query_from_integral
         params.feature_type = 'full';
-        query_integrals = get_codebook_integrals(params, [], cluster_model, roi_size);
+        params.class = '';
+        query_feature.curid = query_file.curid;
+        query_feature.I_size = [1 size(cluster_model.centroids, 1) size(query_file.I, 2) size(query_file.I, 1)];
+        query_feature.objectid = 0;
+        query_feature.bbs = query_file.bbox;
+        query_feature.X = [];
+        query_integrals = get_codebook_integrals(params, query_feature, cluster_model, roi_size);
         if ~isstruct(query_integrals)
             query_features = prepare_features(params, {query_file});
             query_integrals = get_codebook_integrals(params, query_features, cluster_model, roi_size);

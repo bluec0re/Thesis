@@ -45,31 +45,33 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     end
 
     if CACHE_FILE && fileexists(cachename)
-        load_ex(cachename);
-        if ~isfield(integrals, 'scale_factor')
-            [integrals.scale_factor] = deal(1);
+        if nargout > 0
+            load_ex(cachename);
+            if ~isfield(integrals, 'scale_factor')
+                [integrals.scale_factor] = deal(1);
+            end
+            if ~isfield(integrals, 'I_size')
+                sizes = cellfun(@size, {integrals.I}, 'UniformOutput', false);
+                [integrals.I_size] = deal(sizes{:});
+            end
+            if ~isfield(integrals, 'tree')
+                integrals(1).tree = [];
+            end
+            if ~isfield(integrals, 'idx')
+                integrals(1).idx = [];
+            end
+            if ~isfield(integrals, 'scores')
+                integrals(1).scores = [];
+            end
+            if ~isfield(integrals, 'coords')
+                integrals(1).coords = [];
+            end
+            if params.stream_max > 1
+                assignin('base', 'LAST_DB', cachename);
+                assignin('base', 'DB', integrals);
+            end
+            fprintf(1,'get_codebook_integrals: length of stream=%05d\n', length(features));
         end
-        if ~isfield(integrals, 'I_size')
-            sizes = cellfun(@size, {integrals.I}, 'UniformOutput', false);
-            [integrals.I_size] = deal(sizes{:});
-        end
-        if ~isfield(integrals, 'tree')
-            integrals(1).tree = [];
-        end
-        if ~isfield(integrals, 'idx')
-            integrals(1).idx = [];
-        end
-        if ~isfield(integrals, 'scores')
-            integrals(1).scores = [];
-        end
-        if ~isfield(integrals, 'coords')
-            integrals(1).coords = [];
-        end
-        if params.stream_max > 1
-            assignin('base', 'LAST_DB', cachename);
-            assignin('base', 'DB', integrals);
-        end
-        fprintf(1,'get_codebook_integrals: length of stream=%05d\n', length(features));
         return;
     end
 
@@ -85,7 +87,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
         integral_count = 1;
     end
 
-    integrals = alloc_struct_array({integral_count, length(features)}, 'I', 'I_size', 'curid', 'scale_factor', 'max_size', 'min_size', 'tree', 'scores', 'idx', 'coords');
+    integrals = alloc_struct_array({integral_count, length(features)}, 'I', 'I_size', 'curid', 'scale_factor', 'max_size', 'min_size', 'tree', 'scores', 'idx', 'coords', 'small_tree');
     for fi=1:length(features)
         feature = features(fi);
 
@@ -126,6 +128,9 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                     if ~isfield(integral, 'tree')
                         integral.tree = [];
                     end
+                    if ~isfield(integral, 'small_tree')
+                        integral.small_tree = [];
+                    end
                     if ~isfield(integral, 'idx')
                         integral.idx = [];
                     end
@@ -142,7 +147,13 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             end
         end
 
-        [I, scales] = cluster_model.feature2codebookintegral(params, feature);
+        % only cache loading
+        if isempty(feature.X) && length(features) == 1
+            integrals = [];
+            return;
+        end
+
+        [I, scales, checkpoints] = cluster_model.feature2codebookintegral(params, feature);
         if scale_factor < 1 && scale_factor > 0
             deleteEveryN = 1 / (1 - scale_factor);
             info(' Rescaling: %.3f, deleting every %d', scale_factor, deleteEveryN);
@@ -181,50 +192,16 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                 I2 = I2(remaining);
                 scores = I2(:);
                 if params.use_kdtree
-                    [cb, x, y] = ind2sub(Is(2:end), find(remaining));
-                    % sort order: y x cb
-                    coords = [cb, x, y];
-                    cb = unique(cb);
-                    cblen = length(cb);
-                    if cblen > 0
-                        tmptree = alloc_struct_array(cblen, 'x', 'y');
-                        parfor ci=1:cblen
-                            dim = cb(ci);
-                            if ci == 1 || ci == cblen || mod(ci, 100) == 0
-                                debg('[%4d/%04d] Dimension %d', ci, cblen, dim);
-                            end
-                            cs = coords(:, 1) == cb(ci);
-                            x = coords(cs, 2);
-                            y = coords(cs, 3);
-                            s = scores(cs);
-                            ux = unique(x);
-                            data2 = zeros([length(ux) 3], 'uint32');
-                            data2(:, 1) = ux;
-                            data3 = zeros([length(y) 2]);
-                            from = 1;
-                            to = 0;
-                            for xi=1:length(ux)
-                                xs = x == ux(xi);
-                                sxs = sum(xs);
-                                if sxs
-                                    to = to + sum(xs);
-                                    data3(from:to, 1) = y(xs);
-                                    data3(from:to, 2) = s(xs);
-                                    data2(xi, [2 3]) = [from, to];
-                                    from = to+1;
-                                end
-                            end
-                            tmptree(ci).x = data2;
-                            tmptree(ci).y = data3;
-                        end
-                        tree = alloc_struct_array(Is(2), 'x', 'y');
-                        tree(cb) = tmptree;
-                    else
-                        tree = alloc_struct_array(Is(2), 'x', 'y');
-                    end
-
-                    %tree = create_kd_tree(cb, tree);
+                    tree = create_kd_tree(Is, remaining, scores);
                     integrals(si, fi).tree = tree;
+
+                    remaining = checkpoints(si, :, :, :);
+                    I2 = I(si, :, :, :);
+                    I2 = I2(remaining);
+                    scores = I2(:);
+
+                    small_tree = create_kd_tree(Is, remaining, scores);
+                    integrals(si, fi).small_tree = small_tree;
                 elseif params.integral_backend_sum ||  params.integral_backend_overwrite
                     [cb, x, y] = ind2sub(Is(2:end), find(remaining));
                     coords = [x, y, cb];
@@ -304,7 +281,8 @@ function basedir = get_cache_basedir(params, create_dir)
         naiive = 'naiive';
     else
         if params.use_kdtree
-            naiive = 'sparse-kd';
+            naiive = 'sparse-kd2';
+            %naiive = 'sparse-kd';
         elseif params.integral_backend_sum
             naiive = 'sparse-sum';
         elseif params.integral_backend_overwrite
@@ -420,16 +398,46 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
     end
 end
 
-function tree = create_kd_tree(values, data)
-    [values, idx] = sort(values);
-    data = data(idx);
-    tree = alloc_struct_array(length(values), 'value', 'data');
-    for i=1:length(values)
-        tree(i).value = values(i);
-        if iscell(data)
-            tree(i).data = data{i};
-        else
-            tree(i).data = data(i);
+function tree = create_kd_tree(Is, remaining, scores)
+    [cb, x, y] = ind2sub(Is(2:end), find(remaining));
+    % sort order: y x cb
+    coords = [cb, x, y];
+    cb = unique(cb);
+    cblen = length(cb);
+    if cblen > 0
+        tmptree = alloc_struct_array(cblen, 'x', 'y');
+        parfor ci=1:cblen
+            dim = cb(ci);
+            if ci == 1 || ci == cblen || mod(ci, 100) == 0
+                debg('[%4d/%04d] Dimension %d', ci, cblen, dim);
+            end
+            cs = coords(:, 1) == cb(ci);
+            x = coords(cs, 2);
+            y = coords(cs, 3);
+            s = scores(cs);
+            ux = unique(x);
+            data2 = zeros([length(ux) 3], 'uint32');
+            data2(:, 1) = ux;
+            data3 = zeros([length(y) 2]);
+            from = 1;
+            to = 0;
+            for xi=1:length(ux)
+                xs = x == ux(xi);
+                sxs = sum(xs);
+                if sxs
+                    to = to + sum(xs);
+                    data3(from:to, 1) = y(xs);
+                    data3(from:to, 2) = s(xs);
+                    data2(xi, [2 3]) = [from, to];
+                    from = to+1;
+                end
+            end
+            tmptree(ci).x = data2;
+            tmptree(ci).y = data3;
         end
+        tree = alloc_struct_array(Is(2), 'x', 'y');
+        tree(cb) = tmptree;
+    else
+        tree = alloc_struct_array(Is(2), 'x', 'y');
     end
 end
