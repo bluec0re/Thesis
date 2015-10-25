@@ -49,29 +49,6 @@ function demo(train, varargin)
     end
 end
 
-function cluster_model = generateCluster(params)
-%GENERATECLUSTER Generate a cluster model
-%
-%   Syntax:     cluster_model = generateCluster(params)
-%
-%   Input:
-%       params - Configuration parameters
-%
-%   Output:
-%       cluster_model - The model
-
-    profile_log(params);
-    params.feature_type = 'full';
-    params.stream_name = 'database';
-    params.class = '';
-
-    cluster_model = get_cluster(params, []);
-    if ~isstruct(cluster_model)
-        train_features = prepare_features(params);
-        cluster_model = get_cluster(params, train_features);
-    end
-end
-
 function database = getImageDB(params, cluster_model)
 %GETIMAGEDB Generate or load the image database
 %
@@ -252,21 +229,6 @@ function results = searchInteractive(params, cluster_model)
         shg;
     end
 
-    function neg_codebooks = get_neg_codebooks(params)
-        params.stream_name = 'query';
-        params.feature_type = 'full-masked';
-        neg_codebooks = get_codebooks(params, [], cluster_model);
-        if ~isstruct(neg_codebooks)
-            %setStatus('Collecting negative features...');
-            neg_features = prepare_features(params);
-            neg_codebooks = get_codebooks(params, neg_features, cluster_model);
-            clear neg_features;
-        end
-
-        %setStatus('Concating codebooks...');
-        neg_codebooks = horzcat(neg_codebooks.I);
-    end
-
     function results = process(source, cbdata)
         profile_log(params);
         if usejava('desktop')
@@ -393,17 +355,6 @@ function results = searchInteractive(params, cluster_model)
         if usejava('desktop')
             btn.UserData = results;
             uiresume;
-        end
-    end
-
-    function database = load_database(params, cluster_model, roi_size)
-        params.feature_type = 'full';
-        params.stream_name = 'database';
-        params.class = '';
-        database = get_codebook_integrals(params, [], cluster_model, roi_size);
-        if ~isstruct(database)
-            all_features = prepare_features(params);
-            database = get_codebook_integrals(params, all_features, cluster_model, roi_size);
         end
     end
 
