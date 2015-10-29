@@ -60,7 +60,7 @@ function run_demo(skip_runs, log_file_name)
         save('testing_params.mat', 'p', 'param_group1', 'param_group2', 'param_names', 'total_runs', '-v6');
     end
     fprintf('DONE\n');
-    train = true;
+    train = false;
 
     current_run = 1;
     if ~exist('skip_runs', 'var')

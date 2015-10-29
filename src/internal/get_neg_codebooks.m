@@ -1,4 +1,4 @@
-function neg_codebooks = get_neg_codebooks(params)
+function neg_codebooks = get_neg_codebooks(params, cluster_model)
     params.stream_name = 'query';
     params.feature_type = 'full-masked';
     neg_codebooks = get_codebooks(params, [], cluster_model);

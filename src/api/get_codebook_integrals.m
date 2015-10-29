@@ -192,7 +192,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                 I2 = I2(remaining);
                 scores = I2(:);
                 if params.use_kdtree
-                    tree = create_kd_tree(Is, remaining, scores);
+                    tree = create_kd_tree(Is, remaining, scores, false);
                     integrals(si, fi).tree = tree;
 
                     remaining = checkpoints(si, :, :, :);
@@ -200,8 +200,10 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                     I2 = I2(remaining);
                     scores = I2(:);
 
-                    small_tree = create_kd_tree(Is, remaining, scores);
-                    integrals(si, fi).small_tree = small_tree;
+                    if params.window_prefilter
+                        small_tree = create_kd_tree(Is, remaining, scores, true);
+                        integrals(si, fi).small_tree = small_tree;
+                    end
                 elseif params.integral_backend_sum ||  params.integral_backend_overwrite
                     [cb, x, y] = ind2sub(Is(2:end), find(remaining));
                     coords = [x, y, cb];
@@ -281,8 +283,10 @@ function basedir = get_cache_basedir(params, create_dir)
         naiive = 'naiive';
     else
         if params.use_kdtree
-            naiive = 'sparse-kd2';
-            %naiive = 'sparse-kd';
+            naiive = 'sparse-kd';
+            if params.window_prefilter
+                naiive = 'sparse-kd2';
+            end
         elseif params.integral_backend_sum
             naiive = 'sparse-sum';
         elseif params.integral_backend_overwrite
@@ -398,7 +402,7 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
     end
 end
 
-function tree = create_kd_tree(Is, remaining, scores)
+function tree = create_kd_tree(Is, remaining, scores, point_only)
     [cb, x, y] = ind2sub(Is(2:end), find(remaining));
     % sort order: y x cb
     coords = [cb, x, y];
@@ -432,8 +436,13 @@ function tree = create_kd_tree(Is, remaining, scores)
                     from = to+1;
                 end
             end
+
             tmptree(ci).x = data2;
-            tmptree(ci).y = data3;
+            if point_only
+                tmptree(ci).y = data3(:, 1);
+            else
+                tmptree(ci).y = data3;
+            end
         end
         tree = alloc_struct_array(Is(2), 'x', 'y');
         tree(cb) = tmptree;

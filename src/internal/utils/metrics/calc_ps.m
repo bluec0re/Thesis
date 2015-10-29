@@ -7,7 +7,7 @@ function [ tps, fps, threshold ] = calc_ps( trueLabels, scores )
     parse(p, trueLabels, scores);
     trueLabels = p.Results.trueLabels;
     scores = p.Results.scores;
-    
+
     if size(scores, 1) == size(trueLabels, 1)
         if size(scores, 2) ~= size(trueLabels, 2) || size(scores,1) > size(scores, 2)
             scores = scores';
@@ -20,13 +20,14 @@ function [ tps, fps, threshold ] = calc_ps( trueLabels, scores )
 
     [scores, idx] = sort(scores,'descend');
     trueLabels = trueLabels(idx);
-    
+
     idx = find(diff(scores) ~= 0);
-    idx = [idx length(scores)];
-    
+    idx = [idx(:); length(scores)];
+
     tps = cumsum(trueLabels);
     tps = tps(idx);
-    fps = idx - tps;
+    tps = tps(:);
+    fps = idx - tps(:);
     threshold = scores(idx);
+    threshold = threshold(:);
 end
-

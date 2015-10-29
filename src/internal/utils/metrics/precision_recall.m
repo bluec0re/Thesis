@@ -14,7 +14,7 @@ function [ precision, recall, thresholds ] = precision_recall(trueLabels, scores
     last_idx = find(tps == tps(end));
     part = last_idx:-1:1;
 
-    precision = [precision(part) 1];
-    recall = [recall(part) 0];
-    thresholds = thresholds(part);
+    precision = [precision(part); 1]';
+    recall = [recall(part); 0]';
+    thresholds = thresholds(part)';
 end

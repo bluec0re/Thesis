@@ -41,8 +41,11 @@ function windows_bb = calc_windows(params, w, h, cbw, cbh, I )
         bw = cbw * scale;
         bh = cbh * scale;
         step = params.window_margin;% * scale;
+        if params.window_generation_relative_move > 0
+            step = round(min([bw bh]) / params.window_generation_relative_move);
+        end
 
-        if bw > w || bh > h
+        if bw > w * params.max_window_image_ratio || bh > h * params.max_window_image_ratio
             break
         end
         for x=1:step:w

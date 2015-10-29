@@ -9,14 +9,14 @@ function save_ex( varargin )
 %       save_args - Variadic arguments for matlabs save function
 %
 
-    filepath = strrep(varargin{1}, '//', '/');    
+    filepath = strrep(varargin{1}, '//', '/');
     [path, ~, ~] = fileparts(filepath);
     if ~exist(path, 'dir')
         mkdir(path);
     end
 
     [serialize, varargin] = should_serialize(varargin);
-    debg('Serializing...', false);
+    info('Serializing...', false);
     tmp = tic;
     for ai=2:length(varargin)
         arg = varargin{ai};
@@ -30,12 +30,12 @@ function save_ex( varargin )
         end
     end
     sec = toc(tmp);
-    debg('%f sec. Saving %s...', sec, filepath, false, false);
+    info('%f sec. Saving %s...', sec, filepath, false, false);
 
     tmp = tic;
     save(varargin{:});
     sec = toc(tmp);
-    debg('DONE in %f sec', sec, false, true);
+    info('DONE in %f sec', sec, false, true);
 end
 
 function [serialize, new_args] = should_serialize(args)

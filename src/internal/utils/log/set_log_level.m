@@ -7,7 +7,7 @@ function set_log_level(lvl)
 %       lvl - set the current log level
 
     levels = {'ERROR', 'DEBUG', 'INFO', 'WARNING'};
-    levels = horzcat(levels, lower(levels));
+    lvl = upper(lvl);
 
     if any(strcmp(lvl, levels))
         assignin('base', 'G_CURRENT_LOGLEVEL', upper(lvl));

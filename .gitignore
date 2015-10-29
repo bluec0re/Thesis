@@ -12,3 +12,6 @@ masato
 *.mex*
 *.log
 *.o
+__pycache__
+*.pyo
+*.pyc

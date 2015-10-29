@@ -14,7 +14,7 @@ function measure_results(varargin)
     srcdir = [params.dataset.localdir filesep 'queries' filesep 'scaled'];
 
     if params.force_remeasure || params.force_recollect || ~exist([srcdir filesep 'measure.mat'], 'file')
-        groundTruth = getDatabase(params);
+        groundTruth = load_groundtruth(params);
         measureExemplar(params, groundTruth);
         measures = measureMy(params, groundTruth);
     else
@@ -396,46 +396,6 @@ function ap = savePR(targetfile, labels, scores, expected_relevant)
     saveas(f, [sprintf(targetfile, ap) '.pdf']);
     close(f);
     info('Saved graph in %s', targetfile);
-end
-
-function files = getDatabase(params)
-    info('Loading ground truth');
-    filename = sprintf(params.dataset.clsimgsetpath, params.class, 'database');
-    f = fopen(filename, 'r');
-    fileList = textscan(f, '%s %d');
-    fclose(f);
-
-    fnames = fileList{1};
-    positives = fileList{2};
-    objectidx = 1;
-    for fli=1:length(fnames)
-        fname = fnames{fli};
-        positive = positives(fli);
-
-        anno = sprintf(params.dataset.annopath, fname);
-        anno = PASreadrecord(anno);
-        objid = 1;
-        for obj = anno.objects
-            if strcmp(obj.class, params.class)
-                files(objectidx).curid = fname;
-                files(objectidx).I = sprintf(params.dataset.imgpath, fname);
-                files(objectidx).positive = positive == 1;
-                files(objectidx).bbox = obj.bbox;
-                files(objectidx).objectid = objid;
-                objectidx = objectidx + 1;
-                objid = objid + 1;
-            end
-        end
-
-        if ~positive
-            files(objectidx).curid = fname;
-            files(objectidx).I = sprintf(params.dataset.imgpath, fname);
-            files(objectidx).positive = positive;
-            files(objectidx).bbox = [];
-            files(objectidx).objectid = objid;
-            objectidx = objectidx + 1;
-        end
-    end
 end
 
 function fileList = getAllFiles(dirName, ext, max_files)

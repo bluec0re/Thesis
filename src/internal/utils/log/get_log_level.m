@@ -6,6 +6,7 @@ function lvl = get_log_level()
 %   Output:
 %       lvl - get the current log level
 
+    w = warning('off', 'parallel:cluster:GetCurrentTaskFailed');
     if evalin('base', 'exist(''G_CURRENT_LOGLEVEL'', ''var'');')
         lvl = evalin('base', 'G_CURRENT_LOGLEVEL');
     elseif ~isempty(getCurrentTask())
@@ -13,4 +14,5 @@ function lvl = get_log_level()
     else
         lvl = 'INFO';
     end
+    warning(w);
 end
