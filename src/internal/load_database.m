@@ -1,6 +1,6 @@
 function database = load_database(params, cluster_model, roi_size)
     params.feature_type = 'full';
-    params.stream_name = 'database';
+    params.stream_name = params.db_stream_name;
     params.class = '';
     database = get_codebook_integrals(params, [], cluster_model, roi_size);
     if ~isstruct(database)

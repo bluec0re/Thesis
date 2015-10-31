@@ -12,6 +12,12 @@ function filename = filter_cache_files(params, files, sizes, requested_size)
 %   Output:
 %       filename       - path of best matching file
 
+
+    if length(files) == 1
+        filename = files{1};
+        return
+    end
+
     % use scale set by number instead of patch sizes
     if length(requested_size) == 1
         filename = files{requested_size};

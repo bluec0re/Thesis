@@ -11,7 +11,7 @@ function cluster_model = generateCluster(params)
 
     profile_log(params);
     params.feature_type = 'full';
-    params.stream_name = 'database';
+    params.stream_name = params.db_stream_name;
     params.class = '';
 
     cluster_model = get_cluster(params, []);

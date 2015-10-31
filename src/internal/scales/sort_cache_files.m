@@ -10,6 +10,10 @@ function [files, sizes] = sort_cache_files(files, format)
 %   Output:
 %       files - list of resorted files
 %       sizes - list of extracted sizes
+    if length(files) == 1
+        sizes = [];
+        return;
+    end
 
     sizes = zeros([length(files), 2]);
     for fi=1:length(files)

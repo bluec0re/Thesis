@@ -18,6 +18,7 @@ function params = get_default_configuration()
     params.integrals_scale_factor = 1;
     params.stream_max = 100; % default database contains only 50 images, but multiple objects per image
     params.stream_name = 'query';
+    params.db_stream_name = 'database';
     params.codebook_type = 'double';
     params.codebook_scales_count = 3;
     params.nonmax_type_min = true;

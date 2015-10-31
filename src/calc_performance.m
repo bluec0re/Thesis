@@ -7,7 +7,7 @@ function calc_performance()
     log_level(params.log_level);
 
     ground_truth = load_groundtruth(params);
-    my(params, ground_truth);
+    %my(params, ground_truth);
     exemplarSVM(params, ground_truth);
 end
 
@@ -33,16 +33,20 @@ function my(params, ground_truth)
         %savePR(expected_matches, matches .* [result.score], ['image/' filename]);
         %savePR(expected_matches, (scores_pascal > 0) .* [result.score], ['bbox/' filename]);
         %savePR(expected_matches, (scores_pascal >= 0.5) .* [result.score], ['bbox-50percent_overlap/' filename]);
-        savePR(matches, [result.score], ['image/' filename]);
-        savePR(scores_pascal > 0, [result.score], ['bbox/' filename]);
-        savePR(scores_pascal >= 0.5, [result.score], ['bbox-50percent_overlap/' filename]);
+        savePR(matches, [result.score], ['image/' filename], [], sum(expected_matches));
+        savePR(scores_pascal > 0, [result.score], ['bbox/' filename], [], sum(expected_matches));
+        savePR(scores_pascal >= 0.5, [result.score], ['bbox-50percent_overlap/' filename], [], sum(expected_matches));
     end
 end
 
-function savePR(labels, scores, filename, additional_title)
-    labels = [labels, false([1, length(scores) - length(labels)])];
-    [precision, recall, thresholds] = precision_recall(labels, scores, sum(labels));
-    ap = average_precision(labels, scores, sum(labels));
+function savePR(labels, scores, filename, additional_title, expected_len)
+    %labels = [labels, false([1, length(scores) - length(labels)])];
+    %[precision, recall, thresholds] = precision_recall(labels, scores, expected_len);
+    %ap = average_precision(labels, scores, expected_len);
+
+    precision = [1, cumsum(labels) ./ [1:length(labels)], 0];
+    recall = [0, cumsum(labels) / expected_len, 1];
+    ap = auc(recall, precision);
 
     info('Average Precision: %f', ap);
     debg('#Positive: %d', sum(labels));
@@ -52,7 +56,7 @@ function savePR(labels, scores, filename, additional_title)
     ylabel('Precision');
     ylim([-0.1 1.1]);
     xlim([-0.1 1.1]);
-    if ~exist('additional_title', 'var')
+    if ~exist('additional_title', 'var') || isempty(additional_title)
         figtitle = sprintf('Avg Precision: %.3f', ap);
         title(figtitle);
     else
@@ -197,7 +201,7 @@ function exemplarSVM(params, ground_truth)
     %savePR(expected_matches, matches .* [results.score], ['image/' filename], additional_title);
     %savePR(expected_matches, (scores_pascal > 0) .* [results.score], ['bbox/' filename], additional_title);
     %savePR(expected_matches, (scores_pascal >= 0.5) .* [results.score], ['bbox-50percent_overlap/' filename], additional_title);
-    savePR(matches, [results.score], ['image/' filename], additional_title);
-    savePR(scores_pascal > 0, [results.score], ['bbox/' filename], additional_title);
-    savePR(scores_pascal >= 0.5, [results.score], ['bbox-50percent_overlap/' filename], additional_title);
+    savePR(matches, [results.score], ['image/' filename], additional_title, sum(expected_matches));
+    savePR(scores_pascal > 0, [results.score], ['bbox/' filename], additional_title, sum(expected_matches));
+    savePR(scores_pascal >= 0.5, [results.score], ['bbox-50percent_overlap/' filename], additional_title, sum(expected_matches));
 end

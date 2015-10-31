@@ -13,7 +13,7 @@ function [bboxes, codebooks, images, windows, num_orig_windows] = extract_codebo
     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, params.parts, svm_models);
 
     % expand bounding boxes by 1/2 of patch average
-    if params.expand_bboxes
+    if params.expand_bboxes && size(bboxes, 1) > 0
         patch_avg = ceil((max(vertcat(database.max_size)) + min(vertcat(database.min_size))) / 2 / 2);
         patch_avg = repmat(patch_avg, [size(bboxes, 1) 2]);
         patch_avg = patch_avg .* repmat([-1 -1 1 1], [size(bboxes, 1) 1]);

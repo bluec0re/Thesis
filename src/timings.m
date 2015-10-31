@@ -282,14 +282,19 @@ end
 
 function complete(skip_comb, skip_scale)
     clusters = {512, 1000};
+    clusters = {512};
     parts = {1, 4};
     window_filtered = {true, false};
     scale_ranges = {3, 1};
     images = {'2008_004363', '2009_004882', '2010_005116', '2009_000634', '2010_003701'};
+    images = {'2008_004363', '2009_004882', '2010_003701'};
     window_image_ratio = {1, 0.75};
     query_from_integral = {true, false};
+    nonmax_min = {true, false};
+    dbtypes = {'database2', 'database'};
+    dbtypes = {'database2'};
 
-    combinations = cartproduct(images, clusters, parts, window_filtered, scale_ranges, window_image_ratio, query_from_integral);
+    combinations = cartproduct(images, clusters, parts, window_filtered, scale_ranges, window_image_ratio, query_from_integral, nonmax_min, dbtypes);
     num_comb = length(combinations(:));
     for ic=1:num_comb
         if ic < skip_comb
@@ -303,14 +308,8 @@ function complete(skip_comb, skip_scale)
         scale_range = combinations{ic}{5};
         window_image_ratio = combinations{ic}{6};
         query_from_integral = combinations{ic}{7};
-
-        %window_scalings = {1, 2, 3, 4, 5, 0};
-        % skip legacy window generation
-        window_scalings = {1, 2, 3, 4, 5, 0.5};
-        results = cell([1 length(window_scalings)]);
-        num_windows = zeros([1 length(window_scalings)]);
-        elapsed_time = zeros([1 length(window_scalings)]);
-
+        nonmax_min = combinations{ic}{8};
+        dbtype = combinations{ic}{9};
 
         if window_filtered
             filtered = 'filtered';
@@ -322,8 +321,12 @@ function complete(skip_comb, skip_scale)
         else
             query_source = 'raw';
         end
-        filename = sprintf('results/timings/total-%d-%d-%s-%d-%.2f-%s-%s.mat',...
-                           clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid);
+        if nonmax_min
+            nonmax = 'min';
+        else
+            nonmax = 'union';
+        end
+
         if strcmp(fileid, images{1})
             rounds = 10;
         elseif strcmp(fileid, images{2})
@@ -331,18 +334,48 @@ function complete(skip_comb, skip_scale)
         else
             rounds = 1;
         end
+
+        caching = false;
+        if strcmp(dbtype, 'database')
+            stream_max = 100;
+            filename = sprintf('results/timings/total-%d-%d-%s-%d-%.2f-%s-%s-%s.mat',...
+                               clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid, nonmax);
+        else
+            rounds = 1;
+            caching = true;
+            stream_max = 1000;
+            filename = sprintf('results/timings/%s/total-%d-%d-%s-%d-%.2f-%s-%s-%s.mat',...
+                               dbtype, clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid, nonmax);
+        end
+
+        %window_scalings = {1, 2, 3, 4, 5, 0};
+        % skip legacy window generation
+        window_scalings = {1, 2, 3, 4, 5, 0.5};
+        results = cell([1 length(window_scalings)]);
+        num_windows = zeros([1 length(window_scalings)]);
+        elapsed_time = zeros([1 length(window_scalings)]);
+
         % load time from file if available
         if exist(filename, 'file') && skip_scale == 0
-            tmp = load(filename);
+            tmp = load_ex(filename);
             if isfield(tmp, 'elapsed_time')
                 elapsed_time = tmp.elapsed_time;
                 rounds = 1;
             end
+            if length(tmp.num_windows(:)) == length(num_windows) && length(tmp.results(:)) == length(results)
+                num_windows = tmp.num_windows;
+                results = tmp.results;
+            end
         end
+        info('File: %s', filename);
 
         window_scaling_len = length(window_scalings);
         for wi=1:window_scaling_len
             if wi < skip_scale
+                continue
+            end
+            if num_windows(wi) > 0 && ~isempty(results{wi})
+                fprintf('#Windows: %d\n', num_windows(wi));
                 continue
             end
             skip_scale = 0;
@@ -352,7 +385,7 @@ function complete(skip_comb, skip_scale)
                 info('Combination: %2d/%02d', ic, num_comb);
                 info('Scalings: %d/%d', wi, length(window_scalings));
                 info('Round: %d/%d', i, rounds);
-                info('Remaining:', (num_comb*window_scaling_len*rounds) - ((num_comb-1)*window_scaling_len*rounds+wi+i));
+                info('Done: %d/%d', ((ic-1)*window_scaling_len*rounds+(wi-1)*rounds+i), (num_comb*window_scaling_len*rounds));
                 %demo(true,...
                 [r, nw] = demo(false,...
                                'use_kdtree', true,...
@@ -360,7 +393,7 @@ function complete(skip_comb, skip_scale)
                                'clusters', clusters,...
                                'naiive_integral_backend', false,...
                                'use_threading', false,...
-                               'memory_cache', false,...
+                               'memory_cache', caching,...
                                'parts', parts,...
                                'query_from_integral', query_from_integral,...
                                'log_file', '/dev/null',...
@@ -371,6 +404,9 @@ function complete(skip_comb, skip_scale)
                                'codebook_scales_count', scale_range,...
                                'default_query_file', fileid,...
                                'max_window_image_ratio', window_image_ratio,...
+                               'nonmax_type_min', nonmax_min,...
+                               'db_stream_name', dbtype,...
+                               'stream_max', stream_max,...
                                'window_generation_relative_move', window_scaling);
                 results{wi} = r;
                 num_windows(wi) = nw;

@@ -63,7 +63,7 @@ function database = getImageDB(params, cluster_model)
 %       database - The database of integral images
 
     params.feature_type = 'full';
-    params.stream_name = 'database';
+    params.stream_name = params.db_stream_name;
     params.class = '';
 
     all_features = prepare_features(params);
@@ -370,7 +370,7 @@ function [results, num_windows] = searchInteractive(params, cluster_model)
 
     function database = load_window_database(params, cluster_model, roi_size)
         params.feature_type = 'full';
-        params.stream_name = 'database';
+        params.stream_name = params.db_stream_name;
         params.class = '';
         database = get_codebook_from_windows(params, [], cluster_model, roi_size);
         if ~isstruct(database)
@@ -398,6 +398,10 @@ function [results, num_windows] = searchDatabase(params, database, svm_models, f
     profile_log(params);
 
     [bboxes, codebooks, images, windows, num_windows] = extract_codebooks(params, svm_models, database, pos);
+    if isempty(codebooks)
+        results = {};
+        return;
+    end
     results = cell([1 length(svm_models)]);
     for mi=1:length(svm_models)
         model = svm_models(mi);
