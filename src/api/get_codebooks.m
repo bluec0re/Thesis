@@ -24,7 +24,11 @@ function codebooks = get_codebooks(params, features, cluster_model)
         CACHE_FILE = 0;
     end
 
-    basedir = sprintf('%s/models/codebooks/plain/', params.dataset.localdir);
+    if params.fisher_backend
+        basedir = sprintf('%s/models/codebooks/fisher/plain/', params.dataset.localdir);
+    else
+        basedir = sprintf('%s/models/codebooks/plain/', params.dataset.localdir);
+    end
     if CACHE_FILE == 1 && ~exist(basedir,'dir')
         mkdir(basedir);
     end

@@ -298,7 +298,11 @@ function basedir = get_cache_basedir(params, create_dir)
         end
     end
 
-    basedir = sprintf('%s/models/codebooks/integral/%s/', params.dataset.localdir, naiive);
+    if params.fisher_backend
+        basedir = sprintf('%s/models/codebooks/fisher/integral/%s/', params.dataset.localdir, naiive);
+    else
+        basedir = sprintf('%s/models/codebooks/integral/%s/', params.dataset.localdir, naiive);
+    end
     if create_dir && ~exist(basedir,'dir')
         mkdir(basedir);
     end
