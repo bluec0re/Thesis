@@ -46,6 +46,8 @@ function params = get_default_configuration()
     params.memory_cache = true;
     params.use_threading = true;
     params.window_prefilter = false;
+    % experimental
+    params.fisher_backend = false;
 
     params.esvm_default_params = esvm_get_default_params;
     params.esvm_default_params.detect_pyramid_padding = 0;
