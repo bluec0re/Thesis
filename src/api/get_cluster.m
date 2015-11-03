@@ -355,7 +355,7 @@ function codebook = fisher_feature2codebook(model, params, feature)
     if ~isempty(feature.X)
         tmp = tic;
         bbs = round(feature.bbs);
-        X = feature.X;
+        X = single(feature.X);
         window2feature = feature.window2feature;
 
         if ~exist('current_scales', 'var')
@@ -397,7 +397,7 @@ function codebook = fisher_feature2codebook(model, params, feature)
                     partFeatures = partFeatures & (centers(:,2) >= minY + ysteps(1, part));
                     partFeatures = partFeatures & (centers(:,2) <= minY + ysteps(2, part));
 
-                    codebook((part - 1) * codebookSize, win) = yael_fisher(X(partFeatures), w, mu, sigma, 'nonorm');
+                    codebook((part - 1) * codebookSize, win) = yael_fisher(X(partFeatures)', w, mu, sigma, 'nonorm');
                 end
             else
                 %warning('Empty window %d', win);
@@ -446,24 +446,23 @@ function [codebook, scales, checkpoints] = fisher_feature2codebookintegral_naiiv
             scales{si} = current_scales;
 
             current_scales = filter_feature_by_scale(current_scales, feature);
-            Y = feature.X(current_scales, :);
+            Y = single(feature.X(current_scales, :))';
             info('Calculating fisher @ scale %d with %d features...', si, size(Y, 1));
-            tmp = tic;
-            cb = yael_fisher(Y, model.weights, model.means, model.diagonalVariance, 'nonorm');
-            sec = toc(tmp);
-            succ('DONE in %fs', sec);
-            debg('Found %d unique cluster', sum(cb ~= 0));
-
             info('Building codebooks...');
             tmp = tic;
             x2 = x(current_scales);
             y2 = y(current_scales);
-            codebook(si, :, x2(i), y2(i)) = codebook(si, :, x2(i), y2(i)) + cb;
+            for x1=x2
+                for y1=y2
+                    parts = mean(bbs(current_scales, [1 3]), 2) == x1 & mean(bbs(current_scales, [2 4]), 2) == y1;
+                    Z = Y(:, parts);
+                    cb = yael_fisher(Z, model.weights, model.means, model.diagonalVariance, 'nonorm');
+                    codebook(si, :, x1, y1) = codebook(si, :, x1, y1) + cb;
+                end
+            end
             sec = toc(tmp);
             succ('DONE in %fs', sec);
         end
-        codebook = cumsum(codebook, 3);
-        codebook = cumsum(codebook, 4);
     end
     profile_log(params);
     if nargout > 2
@@ -504,19 +503,20 @@ function [codebook, scales, checkpoints] = fisher_feature2codebookintegral(model
             scales{si} = current_scales;
 
             current_scales = filter_feature_by_scale(current_scales, feature);
-            Y = feature.X(current_scales, :);
+            Y = single(feature.X(current_scales, :))';
             info('Calculating fisher @ scale %d with %d features...', si, size(Y, 1));
-            tmp = tic;
-            cb = yael_fisher(Y, model.weights, model.means, model.diagonalVariance, 'nonorm');
-            sec = toc(tmp);
-            succ('DONE in %fs', sec);
-            debg('Found %d unique cluster', sum(cb ~= 0));
-
             info('Building codebooks...');
             tmp = tic;
             x2 = x(current_scales);
             y2 = y(current_scales);
-            codebook(si, :, x2(i), y2(i)) = codebook(si, :, x2(i), y2(i)) + cb;
+            for x1=x2
+                for y1=y2
+                    parts = mean(bbs(current_scales, [1 3]), 2) == x1 & mean(bbs(current_scales, [2 4]), 2) == y1;
+                    Z = Y(:, parts);
+                    cb = yael_fisher(Z, model.weights, model.means, model.diagonalVariance, 'nonorm');
+                    codebook(si, :, x1, y1) = codebook(si, :, x1, y1) + cb;
+                end
+            end
             sec = toc(tmp);
             succ('DONE in %fs', sec);
         end
@@ -525,8 +525,6 @@ function [codebook, scales, checkpoints] = fisher_feature2codebookintegral(model
         tmp = tic;
 
         if ~params.integral_backend_sum
-            codebook = cumsum(codebook, 3);
-            codebook = cumsum(codebook, 4);
              if ~params.naiive_integral_backend && ~params.integral_backend_matlab_sparse
                 % detect difference to previous
                 if params.integral_backend_overwrite || params.use_kdtree

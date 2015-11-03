@@ -17,13 +17,17 @@ function timings(what, varargin)
     elseif strcmp(what, 'complete')
         skip_comb = 0;
         skip_scale = 0;
+        force = false;
         if length(varargin) > 0
             skip_comb = varargin{1};
         end
         if length(varargin) > 1
             skip_scale = varargin{2};
         end
-        complete(skip_comb, skip_scale);
+        if length(varargin) > 2
+            force = varargin{3};
+        end
+        complete(skip_comb, skip_scale, force);
     end
 end
 
@@ -280,7 +284,7 @@ function window_performance()
     end
 end
 
-function complete(skip_comb, skip_scale)
+function complete(skip_comb, skip_scale, force)
     clusters = {512, 1000};
     clusters = {512};
     parts = {1, 4};
@@ -289,7 +293,9 @@ function complete(skip_comb, skip_scale)
     images = {'2008_004363', '2009_004882', '2010_005116', '2009_000634', '2010_003701'};
     images = {'2008_004363', '2009_004882', '2010_003701'};
     window_image_ratio = {1, 0.75};
-    query_from_integral = {true, false};
+    %query_from_integral = {true, false};
+    %just for speed up, maybe not best performance
+    query_from_integral = {false};
     nonmax_min = {true, false};
     dbtypes = {'database2', 'database'};
     dbtypes = {'database2'};
@@ -356,7 +362,7 @@ function complete(skip_comb, skip_scale)
         elapsed_time = zeros([1 length(window_scalings)]);
 
         % load time from file if available
-        if exist(filename, 'file') && skip_scale == 0
+        if exist(filename, 'file') && skip_scale == 0 && ~force
             tmp = load_ex(filename);
             if isfield(tmp, 'elapsed_time')
                 elapsed_time = tmp.elapsed_time;
