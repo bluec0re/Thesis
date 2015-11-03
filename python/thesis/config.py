@@ -7,7 +7,7 @@ __all__ = (
 )
 
 # Project root
-ROOT = P(__file__).absolute().parent.parent
+ROOT = P(__file__).absolute().parent.parent.parent
 # Masatos ExemplarSVM project location
 ESVM_PATH = ROOT / '..' / 'masato' / 'timo2'
 # Detection results

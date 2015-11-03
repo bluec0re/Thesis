@@ -1,8 +1,8 @@
 from h5py import File as loadhdf
 from scipy.io import loadmat
 from collections import namedtuple
-from metrics import get_average_precision
 
+from .metrics import get_average_precision
 from .config import ESVM_IDS, ESVM_FILES, FILES, ESVM_PATH
 from .utils import BoundingBox, Result, get_mean
 
