@@ -7,7 +7,6 @@ masato
 *.avi
 *.jpg
 *.mat
-/vendors
 /results
 *.mex*
 *.log

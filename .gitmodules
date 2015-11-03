@@ -1,0 +1,6 @@
+[submodule "vendors/flann"]
+	path = vendors/flann
+	url = https://github.com/mariusmuja/flann.git
+[submodule "vendors/exemplarsvm"]
+	path = vendors/exemplarsvm
+	url = https://github.com/quantombone/exemplarsvm.git
