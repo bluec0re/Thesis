@@ -1,6 +1,6 @@
 function measure_results(varargin)
-%MEASURE_RESULTS Summary of this function goes here
-%   Detailed explanation goes here
+%MEASURE_RESULTS Reads all result.mat files, calc PR/RECALL, generate measure.mat
+%                files and plot figures
 
     params = get_default_configuration;
     params.force_remeasure = false;
@@ -327,23 +327,6 @@ function ap = measureImageOnly(targetfile, results, all_files, labels, valid_fil
     detected_files = [detected_files, repmat({''}, [1 length(all_files) - length(detected_files)])];
 
     newlabels = [labels(found), labels(notfound)] == 1;
-
-%         tps = cumsum(newlabels);
-%         tps = tps(1:length(detected_files));
-
-%         tp = cellfun(@(x) ismember(x, valid_files), detected_files);
-%         fp = ~tp & ~cellfun(@isempty, detected_files);
-%         fn = cellfun(@(x) ~ismember(x, detected_files), valid_files);
-%         tn = cellfun(@(x) ~ismember(x, detected_files), invalid_files);
-
-%         retrieved_relevant = cumsum(tp);
-    %retrieved_relevant = [retrieved_relevant, repmat(retrieved_relevant(end), [1 length(all_files) - size(retrieved_relevant, 2)])];
-%         retrieved = 1:length(all_files);
-%         expected_relevant = 1:length(valid_files);
-%         expected_relevant = [expected_relevant, repmat(expected_relevant(end), [1 length(all_files) - size(expected_relevant, 2)])];
-
-%         precision = [1 retrieved_relevant] ./ [1 (1:length(tp))];
-%         recall = [0 retrieved_relevant] / length(tp);
 
     ap = savePR([targetfile, 'precision_recall_imageonly-%.3f-AP'], newlabels, (length(all_files):-1:1) .* ~cellfun(@isempty, detected_files), length(valid_files));
 end

@@ -3,6 +3,9 @@
 // #undef eprintf
 // #define eprintf(...) {if(i == 47)fprintf(stderr, __VA_ARGS__);}
 
+/**
+ * Rebuild codebook from kd-Tree
+ */
 void calc_codebook(const mxArray *tree, int xfield, int yfield, uint32_t queryX, uint32_t queryY, double *codebook, int cbs) {
     const mxArray *x, *y;
     uint32_t *x_lookup, *idx;

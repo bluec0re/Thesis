@@ -13,16 +13,7 @@ function codebooks = get_codebooks(params, features, cluster_model)
 
     profile_log(params);
     % cache
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && ~isempty(params.dataset.localdir)
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
     if params.fisher_backend
         basedir = sprintf('%s/models/codebooks/fisher/plain/', params.dataset.localdir);
@@ -65,8 +56,10 @@ function codebooks = get_codebooks(params, features, cluster_model)
     if CACHE_FILE && fileexists(cachename)
         load_ex(cachename);
         fprintf(1,'get_codebooks: length of stream=%05d\n', length(features));
-        assignin('base', 'NEG_CB', codebooks);
-        assignin('base', 'LAST_NEG_CB', cachename);
+        if params.memory_cache
+            assignin('base', 'NEG_CB', codebooks);
+            assignin('base', 'LAST_NEG_CB', cachename);
+        end
         return;
     end
 
@@ -115,7 +108,9 @@ function codebooks = get_codebooks(params, features, cluster_model)
 
     if CACHE_FILE && length(codebooks) > 1
         save_ex(cachename, 'codebooks');
-        assignin('base', 'NEG_CB', codebooks);
-        assignin('base', 'LAST_NEG_CB', cachename);
+        if params.memory_cache
+            assignin('base', 'NEG_CB', codebooks);
+            assignin('base', 'LAST_NEG_CB', cachename);
+        end
     end
 end

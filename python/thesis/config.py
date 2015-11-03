@@ -6,17 +6,26 @@ __all__ = (
     'ESVM_IDS'
 )
 
+# Project root
 ROOT = P(__file__).absolute().parent.parent
+# Masatos ExemplarSVM project location
 ESVM_PATH = ROOT / '..' / 'masato' / 'timo2'
+# Detection results
 RESULT_PATH = ROOT / 'results'
+# PASCAL Image Database
 PASCAL_PATH = ROOT / 'DBs' / 'Pascal' / 'VOC2011'
 ANNOTATION_PATH = PASCAL_PATH / 'Annotations'
 IMAGE_PATH = PASCAL_PATH / 'JPEGImages'
+
+# Results from timings script
 TIMING_PATH = RESULT_PATH / 'timings'
 PERFORMANCE_PATH = RESULT_PATH / 'performance'
 
+# Query files
 FILES = ('2008_004363', '2009_004882', '2010_005116', '2009_000634', '2010_003701')
+# Corresponding ESVM file numbers
 ESVM_FILES = (11, 30, 39, 21, 36)
+# Mapping
 ESVM_IDS = (
     '2007_008932',
     '2008_000133',

@@ -15,18 +15,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
 
     profile_log(params);
     % cache
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && ~isempty(params.dataset.localdir)
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
-
-
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
     if ~exist('roi_size', 'var')
@@ -57,14 +46,19 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
 
     bbs = cat(1, features.bbs);
     bbs(:, [3 4]) = bbs(:, [3 4]) - bbs(:, [1 2]) + 1;
+    % 1:1
     windows = calc_windows(params, max(bbs(:, 3)), max(bbs(:, 4)), 32, 32);
     ratios = ones([size(windows, 1), 1]) * 1;
+    % 1:2
     windows = [windows; calc_windows(params, max(bbs(:, 3)), max(bbs(:, 4)), 16, 32)];
     ratios = [ratios; ones([size(windows, 1) - size(ratios, 1), 1]) * 16/32];
+    % 2:1
     windows = [windows; calc_windows(params, max(bbs(:, 3)), max(bbs(:, 4)), 32, 16)];
     ratios = [ratios; ones([size(windows, 1) - size(ratios, 1), 1]) * 32/16];
+    % 4:3
     windows = [windows; calc_windows(params, max(bbs(:, 3)), max(bbs(:, 4)), 32, 24)];
     ratios = [ratios; ones([size(windows, 1) - size(ratios, 1), 1]) * 32/24];
+    % 3:4
     windows = [windows; calc_windows(params, max(bbs(:, 3)), max(bbs(:, 4)), 24, 32)];
     ratios = [ratios; ones([size(windows, 1) - size(ratios, 1), 1]) * 24/32];
     debg('%d total windows per image', size(windows, 1));
@@ -75,6 +69,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
 
         imgcachename = get_img_cache_name(params, feature, roi_size, CACHE_FILE);
 
+        % try to load corresponding integral image for requested size
         if CACHE_FILE
             try
                 files = get_possible_cache_files(imgcachename);
@@ -83,6 +78,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
                 files = [];
             end
 
+            % enough files found for current settings?
             if length(files) == params.codebook_scales_count
                 image = struct;
                 [files, sizes] = sort_cache_files(files, imgcachename);
@@ -93,6 +89,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
 
                 for ci=1:length(files)
                     load_ex(files{ci});
+                    % prevent field order errors
                     images(ci, fi) = orderfields(image);
                 end
 
@@ -100,6 +97,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
             end
         end
 
+        % calc integral image
         [I, scales] = cluster_model.feature2codebookintegral(params, feature);
 
         for si=1:length(scales)
@@ -159,7 +157,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
             images(si, fi).min_size = min_size;
         end
 
-
+        % save each scale range in a separate file
         if CACHE_FILE
             for si=1:length(scales)
                 image2 = images(si, fi);
@@ -177,6 +175,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
     end
     profile_log(params);
 
+    % save each scale range in a separate file if more than 1 exist
     if CACHE_FILE && size(images, 2) > 1
         orig_images = images;
         for si=1:size(orig_images, 1)
@@ -269,7 +268,6 @@ function cachename = get_cache_name(params, roi_size, create_dir)
                 return;
             end
 
-            %cachename = strrep(cachename, '*', '%d');
             [files, sizes] = sort_cache_files(files, cachename);
             cachename = filter_cache_files(params, files, sizes, roi_size);
         end
@@ -328,6 +326,8 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
                                feature.curid, feature.objectid, type, scale_factor);
         end
     end
+
+    % find closest width/height ratio
     if ~isempty(roi_size)
         ratio = roi_size(1) / roi_size(2);
         ratios = [0.5, 0.75, 1, 1.333333, 2];

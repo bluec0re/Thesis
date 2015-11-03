@@ -12,16 +12,7 @@ function svm_models = get_svms( params, query_codebooks, neg_codebooks )
 %       svm_models - Struct array of svm models. Fields: cb_size, codebook, curid, model
 
     profile_log(params);
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && ~isempty(params.dataset.localdir)
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
     basedir = sprintf('%s/models/svms/', params.dataset.localdir);
     if CACHE_FILE == 1 && ~exist(basedir,'dir')
@@ -98,6 +89,17 @@ function svm_models = addHandlers(svm_models)
 end
 
 function scores = classify_codebooks(params, model, codebooks)
+%CLASSIFY_CODEBOOKS Scores codebooks by a SVM model
+%
+%   Syntax:     scores = classify_codebooks(params, model, codebooks)
+%
+%   Input:
+%       params      - Configuration
+%       model       - SVM Model
+%       codebooks   - Codebook struct array
+%
+%   Output:
+%       scores      - The score for each codebook
     profile_log(params);
     m = model.model;
 
@@ -107,7 +109,7 @@ function scores = classify_codebooks(params, model, codebooks)
             codebooks = codebooks';
         end
         [~, ~, scores] = libsvmpredict(zeros([size(codebooks, 1) 1]), codebooks, m);
-    else % produces NaNs
+    else % produces sometimes NaNs
         weights = m.SVs' * m.sv_coef;
 
         if size(codebooks, 2) == size(weights, 1)

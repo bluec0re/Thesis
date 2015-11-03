@@ -9,8 +9,10 @@ from .config import RESULT_PATH
 
 
 def get_cmap(N):
-    '''Returns a function that maps each index in 0, 1, ... N-1 to a distinct
-    RGB color.'''
+    """
+    Returns a function that maps each index in 0, 1, ... N-1 to a distinct
+    RGB color.
+    """
     color_norm = colors.Normalize(vmin=0, vmax=N)
     scalar_map = cmx.ScalarMappable(norm=color_norm, cmap='hsv')
 
@@ -20,6 +22,9 @@ def get_cmap(N):
 
 
 def plot_versus(database, baselines, timings, precisions, windows):
+    """
+    Plots time vs precision
+    """
     combinations = timings.keys() | precisions.keys() | windows.keys()
     imgs = baselines.keys()
     target_dir = RESULT_PATH / "timing_vs_performance" / database
@@ -66,6 +71,9 @@ def plot_versus(database, baselines, timings, precisions, windows):
 
 
 def show_image(ax, I, bbs=None):
+    """
+    Loads and shows image with optional boundingbox
+    """
     I = imread(str(I))
 
     if bbs:
@@ -83,13 +91,16 @@ def show_image(ax, I, bbs=None):
 
 
 def plot(bl, x, y, label, filename, xlabel, ylabel, title=None):
+    """
+    Plots ESVM together with other data
+    """
     fig, ax = plt.subplots()
-    ax.plot(x, [bl.average_precision]*len(x), 'r--',
+    ax.plot(x, [bl]*len(x), 'r--',
             label='ExemplarSVM', linewidth=2)
     ax.plot(x, y, 'go-', label=label)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_ylim((None, max(y + [bl.average_precision]) * 1.1))
+    ax.set_ylim((None, max(y + [bl]) * 1.1))
     ax.legend(loc='lower right')
     if title:
         fig.suptitle(title)
@@ -98,6 +109,9 @@ def plot(bl, x, y, label, filename, xlabel, ylabel, title=None):
 
 
 def plot_dots(bl, x, y, label, filename, xlabel, ylabel, title=None):
+    """
+    Time vs Precision
+    """
     fig, ax = plt.subplots()
     ax.plot(bl.elapsed, bl.average_precision, '+',
             label='ExemplarSVM', linewidth=2)

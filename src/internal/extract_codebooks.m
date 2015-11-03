@@ -1,4 +1,21 @@
 function [bboxes, codebooks, images, windows, num_orig_windows] = extract_codebooks(params, svm_models, database, pos)
+%EXTRACT_CODEBOOKS Extracts codebooks from the image database and expands the bounding boxes if necessary
+%
+%   Syntax:     [bboxes, codebooks, images, windows, num_orig_windows] = extract_codebooks(params, svm_models, database, pos)
+%
+%   Input:
+%       params      - Configuration
+%       svm_models  - Struct array of SVM models
+%       database    - Image database struct array
+%       pos         - Bounding box of query [xmin, ymin, xmax, ymax]
+%
+%   Output:
+%       bboxes      - Bounding boxes of reduced windows as Nx4
+%       codebooks   - Codebooks of reduced windows as Nx(M*num_parts)
+%       images      - Vector of image numbers per window
+%       windows     - Bounding boxes of unreduced windows
+%       num_orig_windows - Number of unreduced windows
+
     sizes = {database.I_size};
     sizes = cell2mat(vertcat(sizes(:)));
     scale_factors = {database.scale_factor};

@@ -1,4 +1,5 @@
 #!/bin/bash
+# copies the files needed to view the matlab profiling results
 
 DIR="$1"
 if [[ "x$DIR" == "x" ]]

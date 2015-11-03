@@ -1,13 +1,13 @@
 function [ results ] = loading_speed(params)
-%LOADING_SPEED Summary of this function goes here
-%   Detailed explanation goes here
+%LOADING_SPEED Measures speed differnces between serialize and unserialized data
+
     basedir = sprintf('%s/models/codebooks/integral/', params.dataset.localdir);
-    
+
     results.num_images = params.stream_max;
-    
+
     % serialized
     results.serialized = serialized(params, basedir, params.stream_max);
-    
+
     % unserialized
     results.raw = raw(params, basedir, params.stream_max);
 end
@@ -17,11 +17,11 @@ function result = serialized(params, basedir, num_images)
     fname = sprintf('%s/%s-%s-%s-%d-%.3f.mat', basedir,...
         params.class, params.feature_type, params.stream_name, num_images, ...
         params.integrals_scale_factor);
-    
+
     if ~exist(fname, 'file')
         return
     end
-    
+
     result.filename = fname;
     stat = dir(fname);
     result.fsize = stat.bytes;
@@ -41,11 +41,11 @@ function result = raw(params, basedir, num_images)
     fname = sprintf('%s/%s-%s-%s-%d-%.3f_unser.mat', basedir,...
         params.class, params.feature_type, params.stream_name, num_images, ...
         params.integrals_scale_factor);
-    
+
     if ~exist(fname, 'file')
         return
     end
-    
+
     result.filename = fname;
     stat = dir(fname);
     result.fsize = stat.bytes;

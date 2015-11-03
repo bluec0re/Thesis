@@ -1,4 +1,6 @@
 function collect_results(varargin)
+%COLLECT_RESULTS Collects all results from the results/queries folder and computes AVG-PR
+
     params = get_default_configuration;
     keywords = parse_keywords(varargin, fieldnames(params));
     params = merge_structs(params, keywords);
@@ -22,7 +24,7 @@ function collect_results(varargin)
         if isempty(results)
             continue
         end
-        
+
         ps = {};
         fields = fieldnames(cleanparams);
         for fi=1:length(fields)

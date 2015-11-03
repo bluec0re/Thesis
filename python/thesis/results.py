@@ -11,6 +11,9 @@ MyLine = namedtuple('MyLine', 'elapsed, extract, windows, average_precision, win
 
 def get_results(clusters, parts, filtered, scale_ranges, win_img_ratio, query_src,
                 fileid, nonmax, database, recall_threshold):
+    """
+    Load timing results
+    """
     path = TIMING_PATH
     if True or database != 'database':
         path /= database
@@ -36,12 +39,14 @@ def get_results(clusters, parts, filtered, scale_ranges, win_img_ratio, query_sr
     mylines = []
     for win_type, (r, nw, elapsed_time1) in enumerate(zip(results, num_windows, elapsed_time)):
         nw = int(nw)
+        # computation not finished
         if nw == 0:
             continue
 
-        # print(win_type, "#Windows:", nw)
+        # get results
         r = r[0, 0][0, :]
 
+        # Transform into object
         results2 = []
         for r1 in r:
             r1 = Result(r1['curid'][0], r1['score'][0, 0],

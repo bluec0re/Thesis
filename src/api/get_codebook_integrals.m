@@ -16,17 +16,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
 
     profile_log(params);
     % cache
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && ~isempty(params.dataset.localdir)
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
-
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
 
     scale_factor = max([0, min([1, params.integrals_scale_factor])]);
@@ -47,6 +37,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
     if CACHE_FILE && fileexists(cachename)
         if nargout > 0
             load_ex(cachename);
+            % add missing fields
             if ~isfield(integrals, 'scale_factor')
                 [integrals.scale_factor] = deal(1);
             end
@@ -66,7 +57,9 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             if ~isfield(integrals, 'coords')
                 integrals(1).coords = [];
             end
-            if params.stream_max > 1
+
+            % do memory caching
+            if params.stream_max > 1 && params.memory_cache
                 assignin('base', 'LAST_DB', cachename);
                 assignin('base', 'DB', integrals);
             end
@@ -116,6 +109,8 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                     end
                     bbs = feature.bbs;
                     bbs(:, [3 4]) = bbs(:, [3 4]) - bbs(:, [1 2]) + 1;
+
+                    % add missing fields
                     if ~isfield(integral, 'max_size')
                         integral.max_size = max(bbs(:, [3 4]));
                     end
@@ -176,6 +171,7 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             I2 = I(si, :, :, :);
             Is = size(I2);
             integrals(si, fi).I_size = Is;
+            % create data structures if needed
             if params.naiive_integral_backend
                 integrals(si, fi).I = I2;
             elseif params.integral_backend_matlab_sparse
@@ -223,10 +219,6 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
             end
             integrals(si, fi).curid = feature.curid;
             integrals(si, fi).scale_factor = scale_factor;
-            %bbs = feature.bbs(ismember(feature.scales, scales{si}), :);
-            %bbs(:, [3 4]) = round(bbs(:, [3 4]) - bbs(:, [1 2]) + 1);
-            %integrals(si, fi).max_size = max(bbs(:, [3 4]));
-            %integrals(si, fi).min_size = min(bbs(:, [3 4]));
             current_scales = scales{si};
             [ min_size, max_size ] = get_range_for_scale(params, current_scales);
             integrals(si, fi).max_size = max_size;
@@ -261,8 +253,11 @@ function integrals = get_codebook_integrals(params, features, cluster_model, roi
                     break
                 end
             end
-            assignin('base', 'LAST_DB', cachename2);
-            assignin('base', 'DB', integrals);
+
+            if params.memory_cache
+                assignin('base', 'LAST_DB', cachename2);
+                assignin('base', 'DB', integrals);
+            end
         end
     end
 end
@@ -345,7 +340,6 @@ function cachename = get_cache_name(params, roi_size, create_dir)
                 return;
             end
 
-            %cachename = strrep(cachename, '*', '%d');
             [files, sizes] = sort_cache_files(files, cachename);
             cachename = filter_cache_files(params, files, sizes, roi_size);
         end
@@ -407,6 +401,15 @@ function imgcachename = get_img_cache_name(params, feature, roi_size, create_dir
 end
 
 function tree = create_kd_tree(Is, remaining, scores, point_only)
+%CREATE_KD_TREE Builds up a kd-Tree
+%
+%   Syntax:     tree = create_kd_tree(Is, remaining, scores, point_only)
+%
+%   Input:
+%       Is        - Integral image
+%       remaining - Logical index of N important points
+%       scores    - N scores
+%       point_only - Boolean to indicate if scores should not be stored
     [cb, x, y] = ind2sub(Is(2:end), find(remaining));
     % sort order: y x cb
     coords = [cb, x, y];
@@ -416,16 +419,23 @@ function tree = create_kd_tree(Is, remaining, scores, point_only)
         tmptree = alloc_struct_array(cblen, 'x', 'y');
         parfor ci=1:cblen
             dim = cb(ci);
-            if ci == 1 || ci == cblen || mod(ci, 100) == 0
+            if ci == 1 || ci == cblen || mod(ci, 100) == 0 % status updates
                 debg('[%4d/%04d] Dimension %d', ci, cblen, dim);
             end
+            % get coordinates
             cs = coords(:, 1) == cb(ci);
             x = coords(cs, 2);
             y = coords(cs, 3);
             s = scores(cs);
             ux = unique(x);
+
+            % [x]
+            % [ystart]
+            % [yend]
             data2 = zeros([length(ux) 3], 'uint32');
             data2(:, 1) = ux;
+            % [y]
+            % [score]
             data3 = zeros([length(y) 2]);
             from = 1;
             to = 0;
@@ -436,6 +446,7 @@ function tree = create_kd_tree(Is, remaining, scores, point_only)
                     to = to + sum(xs);
                     data3(from:to, 1) = y(xs);
                     data3(from:to, 2) = s(xs);
+                    % store indices of y values for this column
                     data2(xi, [2 3]) = [from, to];
                     from = to+1;
                 end

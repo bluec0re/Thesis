@@ -5,6 +5,7 @@ function succ(fmt, varargin)
 %
 %   Input:
 %       fmt        - Message to log. Formatting available
+%       updateline - optional boolean to indicate if the previous line should be overwritten
 %       addprefix  - optional boolean to indicate if the prefix should be prepended
 %       addnewline - optional boolean to indicate if a new line should be appended
 

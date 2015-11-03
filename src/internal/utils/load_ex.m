@@ -10,18 +10,18 @@ function [out, serialized] = load_ex( varargin )
 %       load_arg - Optional, variadic arguments for matlabs load function
 %
 %   Output:
-%       out - optional struct containing the loaded variables
-%       serialized - optional boolean indicating the load of a serialized var
+%       out         - optional struct containing the loaded variables
+%       serialized  - optional boolean indicating the load of a serialized var
 
     serialized = false;
     info('Loading %s...', strrep(varargin{1}, '//', '/'), false);
     tmp = tic;
     if nargout > 0
         out = load(varargin{:});
+        % data was most probably serialized
         if size(out, 2) == 1 && isa(out, 'uint8')
             sec = toc(tmp);
             info('%f sec. Deserializing...', sec, false);
-            %tmp = tic;
             out = hlp_deserialize(out);
             serialized = true;
         end
@@ -29,10 +29,10 @@ function [out, serialized] = load_ex( varargin )
         vars = load(varargin{:});
         sec = toc(tmp);
         info('%f sec. Deserializing...', sec, false, false);
-        %tmp = tic;
         fields = fieldnames(vars);
         for ai=1:length(fields)
             arg = fields{ai};
+            % data was most probably serialized
             if size(vars.(arg), 2) == 1 && isa(vars.(arg), 'uint8')
                 assignin('caller', arg, hlp_deserialize(vars.(arg)));
                 serialized = true;

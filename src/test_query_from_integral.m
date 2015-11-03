@@ -1,3 +1,5 @@
+% Script to compare the different query sources
+
 addpath(genpath('src'));
 addpath(genpath('vendors'));
 

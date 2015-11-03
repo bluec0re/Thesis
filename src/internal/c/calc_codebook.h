@@ -11,6 +11,7 @@
     #define eprintf(...)
 #endif
 
+/* old variant */
 template<class T>
 T* kd_tree_find_lower_(T* lower, T* upper, uint32_t value) {
     if(lower > upper) {
@@ -59,6 +60,7 @@ T* kd_tree_find_lower_(T* lower, T* upper, uint32_t value) {
     return &lower[u];
 }
 
+/* binary search */
 template<class T>
 T* kd_tree_find_lower(T* lower, T* upper, uint32_t value) {
     if(lower > upper) {
@@ -107,6 +109,9 @@ T* kd_tree_find_lower(T* lower, T* upper, uint32_t value) {
     return upper;
 }
 
+/**
+ * Rebuild codebook from kd-Tree
+ */
 void calc_codebook(const mxArray *tree, int xfield, int yfield, uint32_t queryX, uint32_t queryY, double *codebook, int cbs);
 
 #endif

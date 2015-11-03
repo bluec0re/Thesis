@@ -1,5 +1,15 @@
-function filtered_windows = filter_windows_by_inverse_search(params, integral, windows, svm_models)
-    weight = svm_models.model.SVs' * svm_models.model.sv_coef;
+function filtered_windows = filter_windows_by_inverse_search(params, integral, windows, svm_model)
+%FILTER_WINDOWS_BY_INVERSE_SEARCH Filters windows by searching for relevant codebook entries
+%
+%   Syntax:     filtered_windows = filter_windows_by_inverse_search(params, integral, windows, svm_model)
+%
+%   Input:
+%       params    - Configuratoion
+%       integral  - Integral image
+%       windows   - List of windows
+%       svm_model - Model to extract relevant dimensions from
+
+    weight = svm_model.model.SVs' * svm_model.model.sv_coef;
     positive = mean(weight(weight > 0)) < weight & svm_models.codebook > 0;
     negative = mean(weight(weight < 0)) > weight & svm_models.codebook == 0;
 
@@ -152,6 +162,7 @@ function image = get_all_match(params, integral, dimensions)
 end
 
 function new_mask = adjust_mask(params, mask, integral, left)
+% move window mask by 1/2 patch size to upper left
     if ~params.expand_bboxes
         new_mask = mask;
     end

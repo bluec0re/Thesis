@@ -1,11 +1,15 @@
-function [results, num_windows] = demo(train, varargin)
-%DEMO Demo implementation
+function [results, num_windows] = demo(build, varargin)
+%DEMO Demo implementation. Also creates entries in the results/queries folder
 %
 %   Syntax: demo(train, ...)
 %
 %   Input:
-%       train - boolean to indicate the creation of a image database. Default: false
+%       build - boolean to indicate the creation of an image database
 %       Name-Value pairs to override the default configuration
+%
+%   Output:
+%       results     - The results of the query
+%       num_windows - number of windows originally created to search through
 
 
     close all;
@@ -15,6 +19,7 @@ function [results, num_windows] = demo(train, varargin)
     addpath(genpath('src/api'));
     addpath(genpath('src/internal'));
 
+    % setup configuration
     params = get_default_configuration;
     params.log_file = 'demo.log';
     params.log_level = 'debug';
@@ -30,7 +35,8 @@ function [results, num_windows] = demo(train, varargin)
 
     %params = profile_start(params);
 
-    if exist('train', 'var') && train
+    % build database
+    if exist('build', 'var') && build
         cluster_model = generateCluster(params);
         getImageDB(params, cluster_model);
 
@@ -44,7 +50,7 @@ function [results, num_windows] = demo(train, varargin)
         get_codebooks(params, neg_features, cluster_model);
         profile_stop(params);
         succ('DONE');
-    else
+    else % perform search
         cluster_model = generateCluster(params);
         [results, num_windows] = searchInteractive(params, cluster_model);
     end
@@ -231,6 +237,7 @@ function [results, num_windows] = searchInteractive(params, cluster_model)
         shg;
     end
 
+    % Main search function
     function [results, num_windows] = process(source, cbdata)
         profile_log(params);
         if usejava('desktop')
@@ -262,9 +269,11 @@ function [results, num_windows] = searchInteractive(params, cluster_model)
             pos = round(getPosition(h));
         end
 
+        % transform query bounding box
         roi_size = pos([3 4]);
         pos([3 4]) = pos([3 4]) + pos([1 2]) - 1;
 
+        % save query image if required
         if ~params.no_create
             croppedI = selected_img.I(pos(2):pos(4), pos(1):pos(3), :);
             imwrite(croppedI, [target_dir filesep 'query.jpg']);
@@ -319,6 +328,7 @@ function [results, num_windows] = searchInteractive(params, cluster_model)
             debg('Got %d codebooks', length(query_codebooks));
 
             setStatus('Train SVM...');
+            % disable file cache (always train new SVM)
             params.dataset.localdir = [];%old_params.dataset.localdir;
             svm_models = get_svms(params, query_codebooks, neg_codebooks);
         end
@@ -458,9 +468,7 @@ function [results, num_windows] = searchDatabase(params, database, svm_models, f
                     bbs([3 4]) = bbs([3 4]) + bbs([1 2]) - 1;
                     filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
                     if ~params.no_create
-                        %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
                         I2 = image_with_overlay(I, bbs);
-                        %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                         imwrite(I2, filename);
                     end
@@ -536,9 +544,7 @@ function [results, num_windows] = searchDatabase(params, database, svm_models, f
                     else
                         I = img_cache{image};
                     end
-                    %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
                     I2 = image_with_overlay(I, bbs);
-                    %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                     imwrite(I2, filename);
                 end
@@ -555,23 +561,6 @@ function [results, num_windows] = searchDatabase(params, database, svm_models, f
             info('', false, true);
         end
 
-%         patchnrs = zeros([max(mimg) 1]);
-%         result = struct;
-%         if length(scores) > 0
-%             result(length(scores)).curid = model.curid;
-%         end
-%         for si=1:length(scores)
-%             I = get_image(params, database(mimg(si)).curid);
-%             bbs = mbbs(si, :);
-%             I = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
-%             patchnrs(mimg(si)) = patchnrs(mimg(si)) + 1;
-%             imwrite(I, sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, scores(si), mimg(si), patchnrs(mimg(si))));
-%
-%             result(si).curid = model.curid;
-%             result(si).img = mimg(si);
-%             result(si).patch = patchnrs(mimg(si));
-%             result(si).score = scores(si);
-%         end
         % remove all empty results
         if ~isempty(result) && isfield(result, 'curid')
             result = result(~cellfun(@isempty, {result.curid}));
@@ -674,9 +663,7 @@ function results = searchWindowDatabase(params, database, svm_models, fit_params
 
                     filename = sprintf('%s/%05d-%.3f-Image%d-Patch%d.jpg', target_dir, si, ioscores(pi), image, pi);
                     if ~params.no_create
-                        %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
                         I2 = image_with_overlay(I, bbs);
-                        %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                         imwrite(I2, filename);
                     end
@@ -745,9 +732,7 @@ function results = searchWindowDatabase(params, database, svm_models, fit_params
 
                 if ~params.no_create
                     I = get_image(params, database(image).curid);
-                    %I2 = I(bbs(2):bbs(4), bbs(1):bbs(3), :);
                     I2 = image_with_overlay(I, bbs);
-                    %I2 = I(bbs(1):bbs(3), bbs(2):bbs(4), :);
 
                     imwrite(I2, filename);
                 end
@@ -813,8 +798,6 @@ function fit_params = calibrate_fit(params, svm_models, query_file, cluster_mode
 
         scores = svm_model.classify(params, svm_model, codebooks);
         fit_params(mi, :) = estimate_fit_params(params, scores);
-        %debg('Fitted \u03BC=%f \u03C3=%f', fit_params(1, 1), fit_params(1, 2));
-        %debg('Fitted \xce\xbc=%f \xce\xc3=%f', fit_params(1, 1), fit_params(1, 2));
         debg('Fitted mu=%f sigma=%f', fit_params(1, 1), fit_params(1, 2));
     end
 end

@@ -1,12 +1,16 @@
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from xml.etree import ElementTree as ET
 
-from config import *
+from ..config import ANNOTATION_PATH, IMAGE_PATH, ROOT
+from ..utils import BoundingBox
 
 GroundData = namedtuple('GroundData', 'fileid, I, positive, bbox, objectid')
 
 
 class GroundTruth:
+    """
+    Loads the ground truth from a pascal image set file
+    """
     pascal_class = 'bicycle'
     data = None
     positives = []
@@ -16,6 +20,11 @@ class GroundTruth:
         self._data = data[:]
 
     def __getitem__(self, name):
+        """
+        >>> gd = GroundTruth.get()
+        >>> gd['2008_000615']
+        <GroundData>
+        """
         results = []
         for gd in self._data:
             if gd.fileid == name:
@@ -39,6 +48,11 @@ class GroundTruth:
 
     @classmethod
     def get(cls):
+        """
+        Returns an instance with the data
+        >>> GroundTruth.get()
+        <GroundTruth>
+        """
         if not cls.data:
             cls.load()
         return GroundTruth(cls.data)
@@ -92,6 +106,8 @@ class GroundTruth:
 
 def pascal_overlap(A, B):
     """
+    Calculates the overlap percentage according to PASCAL
+
     >>> pascal_overlap(BoundingBox(0, 0, 10, 10), BoundingBox(0, 0, 10, 10))
     1.0
     >>> pascal_overlap(BoundingBox(0, 0, 10, 20), BoundingBox(0, 0, 10, 10))

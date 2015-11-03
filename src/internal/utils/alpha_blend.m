@@ -1,4 +1,15 @@
 function new = alpha_blend(A, B, alpha, mask)
+%ALPHA_BLEND Blends 2 images together based on an alpha value
+%            C = alpha * A + (1 - alpha) * B
+%
+%   Syntax:     C = alpha_blend(A, B, alpha[, mask])
+%
+%   Input:
+%       A     - Image A (height, width[, colorchannels])
+%       B     - Image B (height, width[, colorchannels])
+%       alpha - Value between [0, 1]
+%       mask  - Optional logical mask where blending should occur
+
     Asize = size(A);
     Bsize = size(B);
 
@@ -32,6 +43,7 @@ function new = alpha_blend(A, B, alpha, mask)
     mask = mask(:);
 
     new = zeros(Asize, class(A));
+    % blend each channel separatly
     for current_channel=1:Asize(3)
         channel = A(:, :, current_channel);
         Bchannel = B(:,:, current_channel);

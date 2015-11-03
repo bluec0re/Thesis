@@ -12,16 +12,7 @@ function features = whiten_features( params, features )
 
     profile_log(params);
     % cache
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && length(params.dataset.localdir)>0
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
     basedir = sprintf('%s/models/features/', params.dataset.localdir);
     if CACHE_FILE == 1 && ~exist(basedir,'dir')

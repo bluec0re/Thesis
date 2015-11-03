@@ -10,16 +10,8 @@ function model = get_cluster( params, features )
 %   Output:
 %       model - The computed model (Fields: centroids. Methods: feature2codebook(params, feature), feature2codebookintegral(params, feature))
 
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && ~isempty(params.dataset.localdir)
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
+    % file cache enabled?
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
     basedir = sprintf('%s/models/clusters/', params.dataset.localdir);
     if params.fisher_backend
@@ -65,11 +57,21 @@ function model = get_cluster( params, features )
         save(cachename, '-struct', 'model');
     end
 
-    % prevent saving of function handles
+    % do not save function handles to file -> much data
     model = addfunctions(params, model);
 end
 
 function model = addfunctions(params, model)
+%ADDFUNCTIONS Adds function handles to the model
+%
+%   Syntax:     model = addfunctions(params, model)
+%   Input:
+%       params - The configuration struct used for caching and profiling
+%       model  - The model to update
+%
+%   Output:
+%       model - The updated model
+
     if params.fisher_backend
         model.feature2codebook = @(p,f)(fisher_feature2codebook(model, p,f));
         if params.naiive_integral_backend
@@ -121,6 +123,7 @@ function codebook = feature2codebook(model, params, feature)
             current_scales = get_current_scales_by_size(params, unique_scales, scale_sizes, roi_size);
         end
 
+        % restrict features to the scale range
         if ~isempty(current_scales)
             current_scales = filter_feature_by_scale(current_scales, feature);
             X = X(current_scales, :);
@@ -131,32 +134,27 @@ function codebook = feature2codebook(model, params, feature)
             end
         end
         info('Searching clusters with %d features...', size(X, 1));
+        % calc all distances at once
         [assignments, distances] = knnsearch(model.centroids, single(X));
         emptyWindows = 0;
         for win=1:length(window2feature)
             winFeatures = window2feature{win};
             if sum(winFeatures) > 0
-                %Y = single(feature.X(winFeatures, :));
                 winBBs = bbs(winFeatures, :);
                 centers = [(winBBs(:, 1) + winBBs(:, 3))/2, (winBBs(:, 2) + winBBs(:, 4))/2];
                 minX = min(winBBs(:, 1));
                 minY = min(winBBs(:, 2));
                 maxX = max(winBBs(:, 3));
                 maxY = max(winBBs(:, 4));
+                % get splits of the window
                 [xsteps, ysteps] = getParts(minX, minY, maxX, maxY, params.parts);
                 for part=1:params.parts
-                    %tmp2 = tic;
-                    %fprintf('Filter features...');
+                    % assign features by their centers
                     partFeatures = centers(:,1) >= minX + xsteps(1, part);
                     partFeatures = partFeatures & (centers(:,1) <= minX + xsteps(2, part));
                     partFeatures = partFeatures & (centers(:,2) >= minY + ysteps(1, part));
                     partFeatures = partFeatures & (centers(:,2) <= minY + ysteps(2, part));
 
-                    %Z = Y(partFeatures, :);
-                    %sec = toc(tmp2);
-                    %fprintf('%f sec. ', sec);
-                    %fprintf('Searching clusters with %d of %d features, window %d/%d %d/%d...', sum(partFeatures), sum(winFeatures), win, length(feature.window2feature), part, params.parts);
-                    %[IDX, D] = knnsearch(model.centroids, Z);
                     IDX = assignments(partFeatures);
                     D = distances(partFeatures);
 
@@ -164,8 +162,6 @@ function codebook = feature2codebook(model, params, feature)
                     for i=1:size(IDX, 1)
                         codebook(IDX(i) + (part - 1) * size(model.centroids,1), win) = codebook(IDX(i) + (part - 1) * size(model.centroids,1), win) + 1 / D(i);
                     end
-                    %sec = toc(tmp2);
-                    %fprintf('DONE after %f sec\nFound %d unique clusters\n', sec, size(unique(IDX), 1));
                 end
             else
                 %warning('Empty window %d', win);
@@ -188,13 +184,14 @@ function [codebook, scales, checkpoints] = feature2codebookintegral_naiive(model
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
 %
 %   Input:
-%       params - The configuration struct. Required fields: codebook_type, profile (if profiling is required)
+%       params  - The configuration struct. Required fields: codebook_type, profile (if profiling is required)
 %       feature - The feature struct. Required fields: X, bbs, I_size, scales
-%       model - The cluster model. Required fields: centroids
+%       model   - The cluster model. Required fields: centroids
 %
 %   Output:
-%       codebook - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
-%       scales - A Cell of size S containing the associated scales.
+%       codebook    - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
+%       scales      - A Cell of size S containing the associated scales.
+%       checkpoints - Always empty for this technique
 
     profile_log(params);
 
@@ -247,13 +244,14 @@ function [codebook, scales, checkpoints] = feature2codebookintegral(model, param
 %   Syntax:     codebook = feature2codebookintegral(params, feature, model)
 %
 %   Input:
-%       params - The configuration struct. Required fields: codebook_type, profile (if profiling is required)
+%       params  - The configuration struct. Required fields: codebook_type, profile (if profiling is required)
 %       feature - The feature struct. Required fields: X, bbs, I_size, scales
-%       model - The cluster model. Required fields: centroids
+%       model   - The cluster model. Required fields: centroids
 %
 %   Output:
-%       codebook - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
-%       scales - A Cell of size S containing the associated scales.
+%       codebook    - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
+%       scales      - A Cell of size S containing the associated scales.
+%       checkpoints - Locations of codebook assignments (logical)
 
     profile_log(params);
 
@@ -300,16 +298,13 @@ function [codebook, scales, checkpoints] = feature2codebookintegral(model, param
             codebook = cumsum(codebook, 3);
             codebook = cumsum(codebook, 4);
              if ~params.naiive_integral_backend && ~params.integral_backend_matlab_sparse
-                % detect difference to previous
+                % detect difference to previous (top left and top) position
                 if params.integral_backend_overwrite || params.use_kdtree
                     I3 = circshift(codebook, [0 0 1 1]);
                     I3(:, :, 1, :) = 0;
                     I3(:, :, :, 1) = 0;
                     unchanged = codebook == I3;
 
-%                     I3 = circshift(codebook, [0 0 1 0]);
-%                     I3(:, :, 1, :) = 0;
-%                     unchanged = unchanged | codebook == I3;
                     I3 = circshift(codebook, [0 0 0 1]);
                     I3(:, :, :, 1) = 0;
                     unchanged = unchanged | codebook == I3;
@@ -381,7 +376,6 @@ function codebook = fisher_feature2codebook(model, params, feature)
         for win=1:length(window2feature)
             winFeatures = window2feature{win};
             if sum(winFeatures) > 0
-                %Y = single(feature.X(winFeatures, :));
                 winBBs = bbs(winFeatures, :);
                 centers = [(winBBs(:, 1) + winBBs(:, 3))/2, (winBBs(:, 2) + winBBs(:, 4))/2];
                 minX = min(winBBs(:, 1));
@@ -390,8 +384,6 @@ function codebook = fisher_feature2codebook(model, params, feature)
                 maxY = max(winBBs(:, 4));
                 [xsteps, ysteps] = getParts(minX, minY, maxX, maxY, params.parts);
                 for part=1:params.parts
-                    %tmp2 = tic;
-                    %fprintf('Filter features...');
                     partFeatures = centers(:,1) >= minX + xsteps(1, part);
                     partFeatures = partFeatures & (centers(:,1) <= minX + xsteps(2, part));
                     partFeatures = partFeatures & (centers(:,2) >= minY + ysteps(1, part));
@@ -427,6 +419,7 @@ function [codebook, scales, checkpoints] = fisher_feature2codebookintegral_naiiv
 %   Output:
 %       codebook - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
 %       scales - A Cell of size S containing the associated scales.
+%       checkpoints - Always empty for this technique
 
     profile_log(params);
 
@@ -483,6 +476,7 @@ function [codebook, scales, checkpoints] = fisher_feature2codebookintegral(model
 %   Output:
 %       codebook - A SxNxWxH matrix. S: different scales, N: size(centroids, 1), W: I_size(2), H: I_size(1)
 %       scales - A Cell of size S containing the associated scales.
+%       checkpoints - Always empty for this technique
 
     profile_log(params);
 
@@ -533,9 +527,6 @@ function [codebook, scales, checkpoints] = fisher_feature2codebookintegral(model
                     I3(:, :, :, 1) = 0;
                     unchanged = codebook == I3;
 
-%                     I3 = circshift(codebook, [0 0 1 0]);
-%                     I3(:, :, 1, :) = 0;
-%                     unchanged = unchanged | codebook == I3;
                     I3 = circshift(codebook, [0 0 0 1]);
                     I3(:, :, :, 1) = 0;
                     unchanged = unchanged | codebook == I3;

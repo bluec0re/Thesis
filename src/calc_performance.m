@@ -1,4 +1,5 @@
 function calc_performance()
+%CALC_PERFORMANCE Generates performance graphs for ESVM and different configurations
     addpath(genpath('src'));
     addpath(genpath('vendors'));
     params = get_default_configuration;
@@ -30,9 +31,12 @@ function my(params, ground_truth)
         windows = round(mean([result.num_windows]) / length(unique_images))
         filename = sprintf('%s_%d-Parts_%d-Clusters_%d-Windows',...
                            comb{3}, comb{2}, comb{1}, windows);
+        % Variant 1
         %savePR(expected_matches, matches .* [result.score], ['image/' filename]);
         %savePR(expected_matches, (scores_pascal > 0) .* [result.score], ['bbox/' filename]);
         %savePR(expected_matches, (scores_pascal >= 0.5) .* [result.score], ['bbox-50percent_overlap/' filename]);
+
+        % Variant 2
         savePR(matches, [result.score], ['image/' filename], [], sum(expected_matches));
         savePR(scores_pascal > 0, [result.score], ['bbox/' filename], [], sum(expected_matches));
         savePR(scores_pascal >= 0.5, [result.score], ['bbox-50percent_overlap/' filename], [], sum(expected_matches));
@@ -40,6 +44,7 @@ function my(params, ground_truth)
 end
 
 function savePR(labels, scores, filename, additional_title, expected_len)
+    % Variant 1
     %labels = [labels, false([1, length(scores) - length(labels)])];
     %[precision, recall, thresholds] = precision_recall(labels, scores, expected_len);
     %ap = average_precision(labels, scores, expected_len);
@@ -198,9 +203,13 @@ function exemplarSVM(params, ground_truth)
 
     filename = 'exemplarSVM';
     additional_title = sprintf('Avg Time per Image: %.3fs\nAvg #Windows: %d', extract_time/length(fileids), mean(num_windows));
+
+    % Variant 1
     %savePR(expected_matches, matches .* [results.score], ['image/' filename], additional_title);
     %savePR(expected_matches, (scores_pascal > 0) .* [results.score], ['bbox/' filename], additional_title);
     %savePR(expected_matches, (scores_pascal >= 0.5) .* [results.score], ['bbox-50percent_overlap/' filename], additional_title);
+
+    % Variant 2
     savePR(matches, [results.score], ['image/' filename], additional_title, sum(expected_matches));
     savePR(scores_pascal > 0, [results.score], ['bbox/' filename], additional_title, sum(expected_matches));
     savePR(scores_pascal >= 0.5, [results.score], ['bbox-50percent_overlap/' filename], additional_title, sum(expected_matches));

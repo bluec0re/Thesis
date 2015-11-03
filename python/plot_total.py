@@ -15,10 +15,14 @@ from thesis.pascal.groundtruth import GroundTruth
 
 
 def process_database(database):
+    """
+    Create figures for given database name
+    """
     baselines = {}
     timings = defaultdict(lambda: defaultdict(list))
     precisions = defaultdict(lambda: defaultdict(list))
     windows = defaultdict(lambda: defaultdict(list))
+
     for img in FILES:
         bl = get_baseline(img)
         baselines[img] = bl
@@ -34,6 +38,7 @@ def process_database(database):
                 if not perf_folder.exists():
                     perf_folder.mkdir(parents=True)
 
+                # overall figures
                 fig_all_perf, ax_all_perf = plt.subplots(1, 2)
                 ax_all_perf[0].set_xlabel('Number of Windows')
                 ax_all_perf[0].set_ylabel('Average Precision')
@@ -50,12 +55,14 @@ def process_database(database):
                 marker = cycle(('v', 'x', '+', 'o', '*', '|', 'D', 's'))
                 marker2 = cycle(('v', 'x', '+', 'o', '*', '|', 'D', 's'))
 
+                # do cross product of all settings
                 combinations = product((512, 1000),
                                        (1, 4),
                                        ('filtered', 'unfiltered'),
                                        (1, 0.75),
                                        ('integral', 'raw'))
                 for clusters, parts, filtered, win_img_ratio, query_src in combinations:
+                    # average all images
                     # img_results = []
                     # for img in FILES:
                     #     try:
@@ -103,7 +110,7 @@ def process_database(database):
                     # performance vs #windows
                     y = [results[i].average_precision for i in idx]
                     print(y)
-                    plot(bl, x, y,
+                    plot(bl.average_precision, x, y,
                          title, str(perf_folder / figure_name),
                          'Number of Windows', 'Average Precision',
                          '50% Bounding Box Overlap Required')
@@ -115,7 +122,7 @@ def process_database(database):
 
                     # timings vs #windows
                     y = [results[i].elapsed for i in idx]
-                    plot(bl, x, y,
+                    plot(bl.elapsed, x, y,
                          title, str(timing_folder / figure_name),
                          'Number of Windows', 'Processing Time in Seconds',
                          '50% Bounding Box Overlap Required')
@@ -156,6 +163,7 @@ def process_database(database):
                 ax_all_time.legend(loc='upper left', ncol=2, fontsize='small')
                 fig_all_time.savefig(str(timing_folder / "window_comparison-{}.png".format(img)))
 
+    # plot time vs precision
     plot_versus(database, baselines, timings, precisions, windows)
 
 

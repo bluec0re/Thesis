@@ -1,6 +1,15 @@
 function files = load_groundtruth(params)
+%LOAD_GROUNDTRUTH Loads the groundtruth from the database list
+%
+%   Syntax:     files = load_groundtruth(params)
+%
+%   Input:
+%       params - Configuration with dataset, class and db_stream_name set
+%
+%   Output:
+%       files  - Struct array if files with fields: curid, I, positive, bbox, objectid
     info('Loading ground truth');
-    filename = sprintf(params.dataset.clsimgsetpath, params.class, 'database');
+    filename = sprintf(params.dataset.clsimgsetpath, params.class, params.db_stream_name);
     f = fopen(filename, 'r');
     fileList = textscan(f, '%s %d');
     fclose(f);

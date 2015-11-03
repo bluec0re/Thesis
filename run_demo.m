@@ -1,4 +1,5 @@
 function run_demo(skip_runs, log_file_name)
+% runs the demo app with different parameters
     if isempty(gcp('nocreate'))
         parpool;
     end
@@ -82,6 +83,7 @@ function run_demo(skip_runs, log_file_name)
             fprintf(msg);
         else
             info(msg);
+            % expand parameter groups
             group1 = args{end};
             args(end) = [];
             group2 = args{end};
@@ -89,6 +91,8 @@ function run_demo(skip_runs, log_file_name)
             args = [args, group1, group2];
             args = [param_names, param_group1, param_group2; args];
             args = args(:);
+
+
             try
                 demo(train, 'memory_cache', train,...
                             'log_file', log_file_name,...

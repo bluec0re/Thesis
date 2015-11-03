@@ -4,12 +4,12 @@ function windows_bb = calc_windows(params, w, h, cbw, cbh, I )
 %   Syntax:     windows_bb = calc_windows(params, w, h, cbw, cbh, I )
 %
 %   Input:
-%       params - Configuration struct
-%       w - Width of the image
-%       h - Height of the image
-%       cbw - Smallest width of a window
-%       cbh - Smallest height of a window
-%       I - Optional test image to produce a intagral.avi file for visualization
+%       params  - Configuration struct
+%       w       - Width of the image
+%       h       - Height of the image
+%       cbw     - Smallest width of a window
+%       cbh     - Smallest height of a window
+%       I       - Optional test image to produce a intagral.avi file for visualization
 %
 %   Output:
 %       windows_bb - Nx4 matrix of windows ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)

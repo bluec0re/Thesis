@@ -67,6 +67,7 @@ function params = get_default_configuration()
 end
 
 function bbox = get_bounding_box(params)
+    % load first bounding box of given class and file
     try
         rec = PASreadrecord(sprintf(params.dataset.annopath, params.default_query_file));
         for obj = rec.objects

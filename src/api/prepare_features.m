@@ -10,6 +10,7 @@ function features = prepare_features(params, query_stream_set)
 %   Output:
 %       features - struct array of features
 
+    % setup stream if needed
     if ~exist('query_stream_set', 'var')
         stream_params.stream_set_name = params.stream_name;
         stream_params.stream_max_ex = params.stream_max;
@@ -22,6 +23,7 @@ function features = prepare_features(params, query_stream_set)
                                               params.dataset);
     end
 
+    % try to load if first
     features = filter_features(params, []);
     if isempty(features)
         features = whiten_features(params, []);

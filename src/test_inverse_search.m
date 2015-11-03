@@ -1,3 +1,4 @@
+% PoC script for inverse search
 addpath(genpath('src'));
 addpath(genpath('vendors'));
 

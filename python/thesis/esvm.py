@@ -10,6 +10,9 @@ Baseline = namedtuple('Baseline', 'elapsed, extract, windows, average_precision,
 
 
 def get_baseline(img=None):
+    """
+    Loads ESVM results
+    """
     data = []
     files = tuple(ESVM_IDS[f-1] for f in ESVM_FILES)
     if not img:

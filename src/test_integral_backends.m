@@ -1,3 +1,5 @@
+% compares the result of different integral backends with the naiive (full integral) approach
+
 %parpool;
 params = get_default_configuration;
 pos = params.default_bounding_box;

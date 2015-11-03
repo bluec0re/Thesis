@@ -4,15 +4,15 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
 %   Syntax:     [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows_bb, num_parts )
 %
 %   Input:
-%       params - The configuration parameters, currently only required for profiling
-%       database - The image database as struct array with the fields I, curid and optionally scale_factor
+%       params     - The configuration parameters, currently only required for profiling
+%       database   - The image database as struct array with the fields I, curid and optionally scale_factor
 %       windows_bb - A Nx4 matrix of bounding boxes to to extract ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)
-%       num_parts - (Even) number of segments a window should be divided to
+%       num_parts  - (Even) number of segments a window should be divided to
 %
 %   Output:
-%       bboxes - A Nx4 matrix of bounding boxes related to the extracted codebooks ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)
+%       bboxes    - A Nx4 matrix of bounding boxes related to the extracted codebooks ($x_{min}$, $y_{min}$, $x_{max}$, $y_{max}$)
 %       codebooks - A Nx(M*num_parts) matrix of M dimensional codebooks
-%       images - A 1xN dimensional index vector for assigning codebooks to images
+%       images    - A 1xN dimensional index vector for assigning codebooks to images
 
     profile_log(params);
 
@@ -23,13 +23,6 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
     info('Calculating codebooks...');
     start = tic;
 
-    %[expectedCodebookCount, codebookSize] = expectedCodebooks(database, windows_bb, NUM_PARTS);
-
-    % extract codebooks
-    % codebooks = zeros([expectedCodebookCount codebookSize]);
-    % bboxes = zeros([expectedCodebookCount 4]);
-    % images = zeros([expectedCodebookCount 1]);
-    % lastIdx = 1;
     codebooks = cell([1 length(database)]);
     bboxes = cell([1 length(database)]);
     images = cell([1 length(database)]);

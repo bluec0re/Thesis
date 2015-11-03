@@ -1,5 +1,6 @@
-
 function timings(what, varargin)
+% Most current testing script. Takes parameter to specify what should be tested
+% and which data should be stored
     addpath(genpath('src'));
     addpath(genpath('vendors'));
 
@@ -32,6 +33,7 @@ function timings(what, varargin)
 end
 
 function loading_timings()
+% Measures loading times of different approaches
     types = {'sparse', 'sparse-kd', 'sparse-matlab', 'sparse-kd2', 'sparse-sum', 'sparse-overwrite', 'naiive'};
     clusters = {512, 1000};
 
@@ -67,10 +69,12 @@ function loading_timings()
 end
 
 function svm_timings()
+% not used atm
     clusters = {512, 1000};
 end
 
 function [svm_models, windows, roi_size, database, cluster_model] = setup_extract(params, cluster, part)
+% Setups the extraction of codebooks to measure it without loading and SVM training
     params.clusters = cluster;
     params.parts = part;
 
@@ -106,14 +110,14 @@ function [svm_models, windows, roi_size, database, cluster_model] = setup_extrac
 end
 
 function extract_timings()
+% Measures only the time needed to extract codebooks based on the configuration
     params = get_default_configuration();
     params.log_file = '/dev/null';
     params.memory_cache = true;
     params.use_threading = false;
     params.query_from_integral = true;
 
-    % setup
-
+    % build different configurations
     types = {'sparse-kd', 'sparse-matlab', 'sparse-kd2', 'naiive', 'sparse-sum', 'sparse-overwrite'};
     clusters = {512, 1000};
     parts = {1, 4};
@@ -146,6 +150,8 @@ function extract_timings()
         debg('Params:\n%s', struct2str(params));
         [svm_models, windows, roi_size, database, cluster_model] = setup_extract(params, cluster, part);
         num_windows(ic) = size(windows, 1);
+
+        % Do the timing
         timings(ic) = extract(params, type, cluster, roi_size, database, part);
         save_ex('results/timings/extract.mat', 'timings', 'combinations', 'num_windows', '-v6');
     end
@@ -160,6 +166,7 @@ function extract_timings()
 end
 
 function window_performance()
+% compares only the differnt window sizes
     params = get_default_configuration();
     params.log_file = '/dev/null';
     params.memory_cache = false;
@@ -199,11 +206,14 @@ function window_performance()
 
         debg('Params:\n%s', struct2str(params));
         [svm_models, windows, roi_size, database, cluster_model] = setup_extract(params, cluster, part);
+
+        % Measure it
         results{ic} = do_work(params, svm_models, database, pos);
         save_ex('results/performance/windows.mat', 'results', 'combinations', '-v6');
     end
 
     function result = do_work(params, svm_models, database, pos)
+        % makes a complete search & result generation
         [bboxes, codebooks, images] = extract_codebooks(params, svm_models, database, pos);
         scores = svm_models.classify(params, svm_models, codebooks);
 
@@ -285,6 +295,7 @@ function window_performance()
 end
 
 function complete(skip_comb, skip_scale, force)
+    % Does overall tests with the demo function
     clusters = {512, 1000};
     clusters = {512};
     parts = {1, 4};
@@ -307,6 +318,7 @@ function complete(skip_comb, skip_scale, force)
             continue;
         end
         skip_comb = 0;
+        % parameters
         fileid = combinations{ic}{1};
         clusters = combinations{ic}{2};
         parts = combinations{ic}{3};
@@ -317,6 +329,7 @@ function complete(skip_comb, skip_scale, force)
         nonmax_min = combinations{ic}{8};
         dbtype = combinations{ic}{9};
 
+        % filename specification
         if window_filtered
             filtered = 'filtered';
         else
@@ -355,7 +368,7 @@ function complete(skip_comb, skip_scale, force)
         end
 
         %window_scalings = {1, 2, 3, 4, 5, 0};
-        % skip legacy window generation
+        % skip legacy window generation (value of 0)
         window_scalings = {1, 2, 3, 4, 5, 0.5};
         results = cell([1 length(window_scalings)]);
         num_windows = zeros([1 length(window_scalings)]);
@@ -392,7 +405,7 @@ function complete(skip_comb, skip_scale, force)
                 info('Scalings: %d/%d', wi, length(window_scalings));
                 info('Round: %d/%d', i, rounds);
                 info('Done: %d/%d', ((ic-1)*window_scaling_len*rounds+(wi-1)*rounds+i), (num_comb*window_scaling_len*rounds));
-                %demo(true,...
+                % Start the test
                 [r, nw] = demo(false,...
                                'use_kdtree', true,...
                                'window_prefilter', window_filtered,...

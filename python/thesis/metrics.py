@@ -5,6 +5,11 @@ from .pascal.groundtruth import GroundTruth, pascal_overlap
 
 
 def get_average_precision1(results):
+    """
+    Calc average precision, version 1
+
+    Uses ground truth as labels
+    """
     gt = GroundTruth.get()
     labels = []
     scores = []
@@ -30,6 +35,11 @@ def get_average_precision1(results):
 
 
 def adjust_vectors(labels, scores, expected_len, gt):
+    """
+    Extends/Shrink labels and scores to a given length
+
+    Does currently nothing
+    """
     return labels, scores
 
     if labels.shape[0] > expected_len:
@@ -55,6 +65,11 @@ def adjust_vectors(labels, scores, expected_len, gt):
 
 
 def get_average_precision2(results, threshold=None):
+    """
+    Calc average precision, version 1
+
+    Uses matches (bbox overlap >= 50%) as labels
+    """
     gt = GroundTruth.get()
     labels = []
     scores = []
@@ -81,16 +96,20 @@ def get_average_precision2(results, threshold=None):
     scores = scores[indices]
 
     expected_len = sum(1 if gd.positive else 0 for gd in GroundTruth.data)
-    # print(scores)
+
     # variant 1: consider all as match -> bad for esvm
     scores = np.ones(scores.shape, dtype=bool)
-    # variant 2: normalize values
+
+    # variant 2: normalize values to [0, 1]
     # scores = (scores - scores.min()) / (scores.max() - scores.min())
+
     [labels, scores] = adjust_vectors(labels, scores, expected_len, gt)
-    # print(labels)
-    # print(scores)
+
     # print('#Positive:', labels.sum())
+    # simple average precision calculation
     # ap = average_precision_score(labels, scores)
+
+    # Consider to a specific recall value
     precisions = np.cumsum(labels) / np.arange(1, labels.shape[0]+1)
     # precisions = np.insert(precisions, 0, [1.0])
     # precisions = np.append(precisions, [0.0])
@@ -98,6 +117,7 @@ def get_average_precision2(results, threshold=None):
     # recalls = np.insert(recalls, 0, [0.0])
     # recalls = np.append(recalls, [1])
 
+    # No recall value was given -> find 0.5 ratio
     if threshold is None:
         ratios = precisions / recalls
         query = (ratios > 0.5) | np.isnan(ratios)
@@ -108,10 +128,10 @@ def get_average_precision2(results, threshold=None):
         threshold = recalls[idx]
     else:
         idx = np.argmax(recalls > threshold)
+
     recalls = recalls[:idx+1]
     precisions = precisions[:idx+1]
     ap2 = auc(recalls, precisions)
-    # plt.subplots()[1].plot(recalls, precisions)
     return [ap2, threshold]
 
 

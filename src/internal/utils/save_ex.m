@@ -5,9 +5,10 @@ function save_ex( varargin )
 %   Syntax:     save_ex(filename, save_args, ...)
 %
 %   Input:
-%       filename - The file to save to
-%       save_args - Variadic arguments for matlabs save function
-%
+%       filename     - The file to save to
+%       save_args    - Variadic arguments for matlabs save function
+%       -serialzie   - Enable serialization
+%       -noserialize - Disable serialization (default)
 
     filepath = strrep(varargin{1}, '//', '/');
     [path, ~, ~] = fileparts(filepath);
@@ -15,6 +16,7 @@ function save_ex( varargin )
         mkdir(path);
     end
 
+    % check if -serialize was given or -noserialize was not given
     [serialize, varargin] = should_serialize(varargin);
     info('Serializing...', false);
     tmp = tic;

@@ -13,16 +13,7 @@ function features = get_features_from_stream( params, stream )
 %                  area, all_scales
 
     profile_log(params);
-    if ~isfield(params, 'dataset')
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    elseif isfield(params.dataset,'localdir') ...
-          && ~isempty(params.dataset.localdir)
-        CACHE_FILE = 1;
-    else
-        params.dataset.localdir = '';
-        CACHE_FILE = 0;
-    end
+    [CACHE_FILE, params] = file_cache_enabled(params);
 
     basedir = sprintf('%s/models/features/', params.dataset.localdir);
     if CACHE_FILE == 1 && ~exist(basedir,'dir')
@@ -117,6 +108,7 @@ function features = get_features_from_stream( params, stream )
         [feature.X, ~, feature.M, offsets, uus, vvs, feature.all_scales] = getHogsInsideBox(t, I, mask, params);
         profile_log(params);
 
+        % reconstruct patch dimensions
         sbin = params.esvm_default_params.init_params.sbin;
         o = [uus' vvs'] - t.padder;
         feature.scales = feature.all_scales(offsets(2,:));

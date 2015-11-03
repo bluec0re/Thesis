@@ -21,26 +21,36 @@ function query_codebooks = extract_query_codebook( params, cluster_model, query_
         roi_size = bbox([3 4]) - bbox([1 2]) + 1;
     end
 
+    % get query data from database
     if params.query_from_integral
         params.feature_type = 'full';
         params.class = '';
+
+        % setup struct
         query_feature.curid = query_file.curid;
         query_feature.I_size = [1 size(cluster_model.centroids, 1) size(query_file.I, 2) size(query_file.I, 1)];
         query_feature.objectid = 0;
         query_feature.bbs = query_file.bbox;
         query_feature.X = [];
+
+        % load integral for given file
         query_integrals = get_codebook_integrals(params, query_feature, cluster_model, roi_size);
         if ~isstruct(query_integrals)
+            % file does not exist -> generate
             query_features = prepare_features(params, {query_file});
             query_integrals = get_codebook_integrals(params, query_features, cluster_model, roi_size);
             clear query_features;
         end
+        % extract codebook for the bounding box
         [ query_codebooks.size, query_codebooks.I, ~ ] = calc_codebooks(params, query_integrals, bbox, params.parts );
+
+        % build codebook struct
         query_codebooks.I = query_codebooks.I';
         query_codebooks.curid = query_file.curid;
         query_codebooks.size = query_codebooks.size([3 4]) - query_codebooks.size([1 2]) + 1;
-    else
+    else % extract query data directly from the picture
         params.feature_type = 'bboxed';
+        % disable file cache
         params.dataset.localdir = [];
         query_features = prepare_features(params, {query_file});
         query_codebooks = get_codebooks(params, query_features, cluster_model);

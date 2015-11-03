@@ -1,0 +1,438 @@
+digraph {
+getCodebooksFromIntegral__fast [label="getCodebooksFromIntegral>fast"]
+getCodebooksFromIntegral__fast -> getCodebooksFromIntegral__bboxesForPart;
+get_pyramid -> flip_image;
+get_pyramid -> esvm_pyramid;
+demo__process [label="demo>process"]
+demo__process -> get_full_neg_model;
+demo__process -> get_svms;
+demo__process -> demo__calibrate_fit;
+demo__process -> demo__searchDatabase;
+demo__process -> profile_stop;
+demo__process -> profile_log;
+demo__process -> load_database;
+demo__process -> demo__load_window_database;
+demo__process -> debg;
+demo__process -> clean_struct;
+demo__process -> extract_query_codebook;
+demo__process -> save_ex;
+demo__process -> demo__searchWindowDatabase;
+demo__process -> demo__get_target_dir;
+demo__process -> get_neg_codebooks;
+demo__process -> demo__setStatus;
+hlp_deserialize__deserialize_cell [label="hlp_deserialize>deserialize_cell"]
+hlp_deserialize__deserialize_cell -> hlp_deserialize__deserialize_numeric_simple;
+hlp_deserialize__deserialize_cell -> hlp_deserialize__deserialize_value;
+hlp_deserialize__deserialize_cell -> hlp_deserialize__deserialize_logical;
+hlp_deserialize__deserialize_cell -> hlp_deserialize__deserialize_string;
+demo__getSVM [label="demo>getSVM"]
+demo__getSVM -> get_codebooks;
+demo__getSVM -> prepare_features;
+demo__getSVM -> get_svms;
+hlp_deserialize__deserialize_char [label="hlp_deserialize>deserialize_char"]
+hlp_serialize__serialize_cell_typed [label="hlp_serialize>serialize_cell_typed"]
+hlp_serialize__serialize_scalar [label="hlp_serialize>serialize_scalar"]
+hlp_serialize__serialize_scalar -> hlp_serialize__class2tag;
+get_neg_codebooks -> get_codebooks;
+get_neg_codebooks -> prepare_features;
+whiten_features -> load_ex;
+whiten_features -> profile_log;
+whiten_features -> whiten_features__get_neg_model;
+whiten_features -> debg;
+whiten_features -> save_ex;
+whiten_features -> fileexists;
+whiten_features -> file_cache_enabled;
+VOCxml2struct__trim [label="VOCxml2struct>trim"]
+PASreadrectxt -> PASreadrectxt__match;
+PASreadrectxt -> PASerrmsg;
+hlp_deserialize__deserialize_scalar [label="hlp_deserialize>deserialize_scalar"]
+get_codebook_integrals -> alloc_struct_array;
+get_codebook_integrals -> info;
+get_codebook_integrals -> succ;
+get_codebook_integrals -> filter_cache_files;
+get_codebook_integrals -> get_codebook_integrals__get_img_cache_name;
+get_codebook_integrals -> get_codebook_integrals__get_cache_name;
+get_codebook_integrals -> load_ex;
+get_codebook_integrals -> profile_log;
+get_codebook_integrals -> debg;
+get_codebook_integrals -> warn;
+get_codebook_integrals -> save_ex;
+get_codebook_integrals -> get_range_for_scale;
+get_codebook_integrals -> fileexists;
+get_codebook_integrals -> get_codebook_integrals__create_kd_tree;
+get_codebook_integrals -> file_cache_enabled;
+get_codebook_integrals -> sort_cache_files;
+get_codebook_integrals -> get_possible_cache_files;
+get_codebook_from_windows__get_img_cache_name [label="get_codebook_from_windows>get_img_cache_name"]
+get_codebook_from_windows__get_img_cache_name -> get_codebook_from_windows__get_cache_basedir;
+get_cluster__feature2codebookintegral_naiive [label="get_cluster>feature2codebookintegral_naiive"]
+get_cluster__feature2codebookintegral_naiive -> get_current_scales_by_index;
+get_cluster__feature2codebookintegral_naiive -> succ;
+get_cluster__feature2codebookintegral_naiive -> info;
+get_cluster__feature2codebookintegral_naiive -> get_available_scales;
+get_cluster__feature2codebookintegral_naiive -> profile_log;
+get_cluster__feature2codebookintegral_naiive -> filter_feature_by_scale;
+get_cluster__feature2codebookintegral_naiive -> debg;
+VOCreadrecxml__xmlobjtopas [label="VOCreadrecxml>xmlobjtopas"]
+VOCreadrecxml__xmlobjtopas -> VOCreadrecxml__xmlobjtopas;
+calc_windows -> succ;
+calc_windows -> info;
+get_cluster -> get_cluster__addfunctions;
+get_cluster -> succ;
+get_cluster -> info;
+get_cluster -> load_ex;
+get_cluster -> fileexists;
+get_cluster -> yael_gmm;
+get_cluster -> file_cache_enabled;
+get_cluster -> yael_kmeans;
+hlp_deserialize__deserialize_logical [label="hlp_deserialize>deserialize_logical"]
+get_svms__classify_codebooks [label="get_svms>classify_codebooks"]
+get_svms__classify_codebooks -> debg;
+get_svms__classify_codebooks -> profile_log;
+save_ex -> hlp_serialize;
+save_ex -> info;
+save_ex -> save_ex__should_serialize;
+demo__get_target_dir [label="demo>get_target_dir"]
+hlp_serialize__serialize_cell_heterogenous [label="hlp_serialize>serialize_cell_heterogenous"]
+hlp_serialize__serialize_logical [label="hlp_serialize>serialize_logical"]
+get_full_neg_model -> load_ex;
+PASreadrecord -> PASreadrectxt;
+PASreadrecord -> VOCreadrecxml;
+succ -> get_log_level;
+succ -> log_msg;
+hlp_deserialize__deserialize_complex [label="hlp_deserialize>deserialize_complex"]
+hlp_deserialize__deserialize_complex -> hlp_deserialize__deserialize_numeric_simple;
+get_codebook_from_windows__get_cache_name [label="get_codebook_from_windows>get_cache_name"]
+get_codebook_from_windows__get_cache_name -> filter_cache_files;
+get_codebook_from_windows__get_cache_name -> sort_cache_files;
+get_codebook_from_windows__get_cache_name -> get_codebook_from_windows__get_cache_basedir;
+get_codebook_from_windows__get_cache_name -> get_possible_cache_files;
+demo__getImageDB [label="demo>getImageDB"]
+demo__getImageDB -> get_codebook_from_windows;
+demo__getImageDB -> get_codebook_integrals;
+demo__getImageDB -> prepare_features;
+VOCreadxml -> VOCxml2struct;
+demo__searchDatabase [label="demo>searchDatabase"]
+demo__searchDatabase -> succ;
+demo__searchDatabase -> info;
+demo__searchDatabase -> alloc_struct_array;
+demo__searchDatabase -> extract_codebooks;
+demo__searchDatabase -> image_with_overlay;
+demo__searchDatabase -> adjust_scores;
+demo__searchDatabase -> profile_log;
+demo__searchDatabase -> err;
+demo__searchDatabase -> demo__get_target_dir;
+demo__searchDatabase -> reduce_matches;
+demo__searchDatabase -> get_image;
+get_features_from_stream__get_features_per_window [label="get_features_from_stream>get_features_per_window"]
+get_features_from_stream__get_features_per_window -> profile_log;
+hlp_deserialize__deserialize_value [label="hlp_deserialize>deserialize_value"]
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_numeric_simple;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_char;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_sparse;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_struct;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_string;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_cell;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_object;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_complex;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_scalar;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_logical;
+hlp_deserialize__deserialize_value -> hlp_deserialize__deserialize_handle;
+hlp_deserialize__deserialize_sparse [label="hlp_deserialize>deserialize_sparse"]
+hlp_deserialize__deserialize_sparse -> hlp_deserialize__deserialize_numeric_simple;
+esvm_get_pascal_stream_custom -> PASreadrecord;
+esvm_get_pascal_stream_custom -> cellfun2;
+esvm_get_pascal_stream_custom -> fileexists;
+calc_codebooks__expectedCodebooks [label="calc_codebooks>expectedCodebooks"]
+demo__load_window_database [label="demo>load_window_database"]
+demo__load_window_database -> get_codebook_from_windows;
+demo__load_window_database -> prepare_features;
+get_cluster__feature2codebookintegral [label="get_cluster>feature2codebookintegral"]
+get_cluster__feature2codebookintegral -> get_current_scales_by_index;
+get_cluster__feature2codebookintegral -> succ;
+get_cluster__feature2codebookintegral -> info;
+get_cluster__feature2codebookintegral -> get_available_scales;
+get_cluster__feature2codebookintegral -> profile_log;
+get_cluster__feature2codebookintegral -> filter_feature_by_scale;
+get_cluster__feature2codebookintegral -> debg;
+demo__searchWindowDatabase [label="demo>searchWindowDatabase"]
+demo__searchWindowDatabase -> alloc_struct_array;
+demo__searchWindowDatabase -> succ;
+demo__searchWindowDatabase -> info;
+demo__searchWindowDatabase -> image_with_overlay;
+demo__searchWindowDatabase -> adjust_scores;
+demo__searchWindowDatabase -> profile_log;
+demo__searchWindowDatabase -> err;
+demo__searchWindowDatabase -> demo__get_target_dir;
+demo__searchWindowDatabase -> reduce_matches;
+demo__searchWindowDatabase -> get_image;
+demo__select_img [label="demo>select_img"]
+whiten_features__get_neg_model [label="whiten_features>get_neg_model"]
+getCodebooksFromIntegral -> reconstruct_matrix;
+getCodebooksFromIntegral -> profile_log;
+getCodebooksFromIntegral -> reconstruct_matrix_by_sum;
+getCodebooksFromIntegral -> debg;
+getCodebooksFromIntegral -> reconstruct_matrix_by_overwrite;
+getCodebooksFromIntegral -> sparse_codebook;
+getCodebooksFromIntegral -> getParts;
+info -> get_log_level;
+info -> log_msg;
+get_codebook_integrals__get_img_cache_name [label="get_codebook_integrals>get_img_cache_name"]
+get_codebook_integrals__get_img_cache_name -> get_codebook_integrals__get_cache_basedir;
+hlp_deserialize -> hlp_deserialize__deserialize_value;
+debg -> get_log_level;
+debg -> log_msg;
+hlp_deserialize__deserialize_string [label="hlp_deserialize>deserialize_string"]
+getHogsInsideBox -> cellfun2;
+filter_windows_by_inverse_search__adjust_mask [label="filter_windows_by_inverse_search>adjust_mask"]
+get_codebook_from_windows -> alloc_struct_array;
+get_codebook_from_windows -> filter_cache_files;
+get_codebook_from_windows -> calc_windows;
+get_codebook_from_windows -> get_codebook_from_windows__get_cache_name;
+get_codebook_from_windows -> load_ex;
+get_codebook_from_windows -> profile_log;
+get_codebook_from_windows -> get_codebook_from_windows__get_img_cache_name;
+get_codebook_from_windows -> getCodebooksFromIntegral;
+get_codebook_from_windows -> debg;
+get_codebook_from_windows -> warn;
+get_codebook_from_windows -> save_ex;
+get_codebook_from_windows -> err;
+get_codebook_from_windows -> get_range_for_scale;
+get_codebook_from_windows -> fileexists;
+get_codebook_from_windows -> file_cache_enabled;
+get_codebook_from_windows -> sort_cache_files;
+get_codebook_from_windows -> get_possible_cache_files;
+get_codebook_integrals__get_cache_name [label="get_codebook_integrals>get_cache_name"]
+get_codebook_integrals__get_cache_name -> filter_cache_files;
+get_codebook_integrals__get_cache_name -> sort_cache_files;
+get_codebook_integrals__get_cache_name -> get_codebook_integrals__get_cache_basedir;
+get_codebook_integrals__get_cache_name -> get_possible_cache_files;
+VOCxml2struct__findchar [label="VOCxml2struct>findchar"]
+load_database -> get_codebook_integrals;
+load_database -> prepare_features;
+filter_windows_by_inverse_search__get_any_match [label="filter_windows_by_inverse_search>get_any_match"]
+hlp_serialize__warn_once [label="hlp_serialize>warn_once"]
+hlp_deserialize__warn_once [label="hlp_deserialize>warn_once"]
+hlp_serialize__serialize_handle [label="hlp_serialize>serialize_handle"]
+hlp_serialize__serialize_handle -> hlp_serialize__warn_once;
+hlp_serialize__serialize_handle -> hlp_serialize__serialize_cell;
+hlp_serialize__serialize_handle -> hlp_serialize__serialize_struct;
+hlp_serialize__serialize_handle -> hlp_serialize__serialize_string;
+get_svms__addHandlers [label="get_svms>addHandlers"]
+extract_query_codebook -> get_codebooks;
+extract_query_codebook -> get_codebook_integrals;
+extract_query_codebook -> prepare_features;
+extract_query_codebook -> calc_codebooks;
+hlp_serialize__serialize_struct [label="hlp_serialize>serialize_struct"]
+hlp_serialize__serialize_struct -> hlp_serialize__serialize_cell;
+hlp_serialize__serialize_numeric [label="hlp_serialize>serialize_numeric"]
+hlp_serialize__serialize_numeric -> hlp_serialize__serialize_scalar;
+hlp_serialize__serialize_numeric -> hlp_serialize__serialize_numeric_simple;
+VOCxml2struct -> VOCxml2struct__parse;
+PASreadrectxt__match [label="PASreadrectxt>match"]
+PASreadrectxt__match -> PASerrmsg;
+get_cluster__fisher_feature2codebookintegral_naiive [label="get_cluster>fisher_feature2codebookintegral_naiive"]
+get_cluster__fisher_feature2codebookintegral_naiive -> get_current_scales_by_index;
+get_cluster__fisher_feature2codebookintegral_naiive -> succ;
+get_cluster__fisher_feature2codebookintegral_naiive -> info;
+get_cluster__fisher_feature2codebookintegral_naiive -> get_available_scales;
+get_cluster__fisher_feature2codebookintegral_naiive -> profile_log;
+get_cluster__fisher_feature2codebookintegral_naiive -> filter_feature_by_scale;
+get_cluster__fisher_feature2codebookintegral_naiive -> yael_fisher;
+hlp_serialize__serialize_object [label="hlp_serialize>serialize_object"]
+hlp_serialize__serialize_object -> hlp_serialize;
+hlp_serialize__serialize_object -> hlp_serialize__serialize_struct;
+hlp_serialize__serialize_object -> hlp_serialize__serialize_string;
+get_features_from_stream -> alloc_struct_array;
+get_features_from_stream -> get_pyramid;
+get_features_from_stream -> get_features_from_stream__get_features_per_window;
+get_features_from_stream -> calc_windows;
+get_features_from_stream -> load_ex;
+get_features_from_stream -> profile_log;
+get_features_from_stream -> debg;
+get_features_from_stream -> save_ex;
+get_features_from_stream -> warn;
+get_features_from_stream -> fileexists;
+get_features_from_stream -> getHogsInsideBox;
+get_features_from_stream -> file_cache_enabled;
+get_features_from_stream -> convert_to_I;
+get_cluster__fisher_feature2codebook [label="get_cluster>fisher_feature2codebook"]
+get_cluster__fisher_feature2codebook -> succ;
+get_cluster__fisher_feature2codebook -> info;
+get_cluster__fisher_feature2codebook -> get_available_scales;
+get_cluster__fisher_feature2codebook -> profile_log;
+get_cluster__fisher_feature2codebook -> filter_feature_by_scale;
+get_cluster__fisher_feature2codebook -> warn;
+get_cluster__fisher_feature2codebook -> yael_fisher;
+get_cluster__fisher_feature2codebook -> get_current_scales_by_size;
+get_cluster__fisher_feature2codebook -> getParts;
+hlp_serialize__class2tag [label="hlp_serialize>class2tag"]
+demo__searchInteractive [label="demo>searchInteractive"]
+demo__searchInteractive -> demo__setStatus;
+demo__searchInteractive -> demo__select_img;
+demo__searchInteractive -> demo__process;
+demo__searchInteractive -> profile_log;
+demo__setStatus [label="demo>setStatus"]
+demo__setStatus -> info;
+demo__calibrate_fit [label="demo>calibrate_fit"]
+demo__calibrate_fit -> get_codebooks;
+demo__calibrate_fit -> calc_windows;
+demo__calibrate_fit -> profile_log;
+demo__calibrate_fit -> prepare_features;
+demo__calibrate_fit -> debg;
+demo__calibrate_fit -> estimate_fit_params;
+get_codebooks -> alloc_struct_array;
+get_codebooks -> load_ex;
+get_codebooks -> profile_log;
+get_codebooks -> debg;
+get_codebooks -> save_ex;
+get_codebooks -> fileexists;
+get_codebooks -> file_cache_enabled;
+save_ex__should_serialize [label="save_ex>should_serialize"]
+get_cluster__feature2codebook [label="get_cluster>feature2codebook"]
+get_cluster__feature2codebook -> succ;
+get_cluster__feature2codebook -> info;
+get_cluster__feature2codebook -> get_available_scales;
+get_cluster__feature2codebook -> profile_log;
+get_cluster__feature2codebook -> filter_feature_by_scale;
+get_cluster__feature2codebook -> warn;
+get_cluster__feature2codebook -> get_current_scales_by_size;
+get_cluster__feature2codebook -> getParts;
+prepare_features -> get_features_from_stream;
+prepare_features -> esvm_get_pascal_stream_custom;
+prepare_features -> filter_features;
+prepare_features -> info;
+prepare_features -> whiten_features;
+getCodebooksFromIntegral__bboxesForPart [label="getCodebooksFromIntegral>bboxesForPart"]
+log_msg -> log_file;
+hlp_serialize__serialize_numeric_simple [label="hlp_serialize>serialize_numeric_simple"]
+hlp_serialize__serialize_numeric_simple -> hlp_serialize__class2tag;
+hlp_serialize__serialize_string [label="hlp_serialize>serialize_string"]
+hlp_deserialize__deserialize_struct [label="hlp_deserialize>deserialize_struct"]
+hlp_deserialize__deserialize_struct -> hlp_deserialize__deserialize_cell;
+hlp_deserialize__restore_function [label="hlp_deserialize>restore_function"]
+filter_windows_by_inverse_search -> debg;
+filter_windows_by_inverse_search -> filter_windows_by_inverse_search__adjust_mask;
+filter_windows_by_inverse_search -> filter_windows_by_inverse_search__get_all_match;
+filter_windows_by_inverse_search -> filter_windows_by_inverse_search__get_any_match;
+get_codebook_integrals__create_kd_tree [label="get_codebook_integrals>create_kd_tree"]
+get_codebook_integrals__create_kd_tree -> debg;
+get_codebook_integrals__create_kd_tree -> alloc_struct_array;
+generateCluster -> get_cluster;
+generateCluster -> profile_log;
+generateCluster -> prepare_features;
+get_svms -> alloc_struct_array;
+get_svms -> info;
+get_svms -> get_svms__addHandlers;
+get_svms -> load_ex;
+get_svms -> profile_log;
+get_svms -> save_ex;
+get_svms -> fileexists;
+get_svms -> file_cache_enabled;
+calc_codebooks -> filter_windows_by_inverse_search;
+calc_codebooks -> succ;
+calc_codebooks -> info;
+calc_codebooks -> profile_log;
+calc_codebooks -> getCodebooksFromIntegral;
+calc_codebooks -> debg;
+calc_codebooks -> err;
+calc_codebooks -> clean_struct;
+filter_cache_files -> is_in_scale;
+filter_cache_files -> info;
+image_with_overlay -> alpha_blend;
+load_ex -> hlp_deserialize;
+load_ex -> info;
+VOCxml2struct__parse [label="VOCxml2struct>parse"]
+VOCxml2struct__parse -> VOCxml2struct__parse;
+VOCxml2struct__parse -> VOCxml2struct__gettag;
+VOCxml2struct__parse -> VOCxml2struct__trim;
+VOCxml2struct__parse -> VOCxml2struct__findchar;
+filter_features -> load_ex;
+filter_features -> profile_log;
+filter_features -> debg;
+filter_features -> save_ex;
+filter_features -> fileexists;
+filter_features -> file_cache_enabled;
+get_codebook_integrals__get_cache_basedir [label="get_codebook_integrals>get_cache_basedir"]
+hlp_deserialize__deserialize_numeric_simple [label="hlp_deserialize>deserialize_numeric_simple"]
+warn -> get_log_level;
+warn -> log_msg;
+hlp_deserialize__deserialize_object [label="hlp_deserialize>deserialize_object"]
+hlp_deserialize__deserialize_object -> hlp_deserialize__warn_once;
+hlp_deserialize__deserialize_object -> hlp_deserialize__deserialize_string;
+hlp_deserialize__deserialize_object -> hlp_deserialize__deserialize_value;
+err -> get_log_level;
+err -> log_msg;
+hlp_serialize -> hlp_serialize__serialize_handle;
+hlp_serialize -> hlp_serialize__serialize_cell;
+hlp_serialize -> hlp_serialize__serialize_numeric;
+hlp_serialize -> hlp_serialize__serialize_object;
+hlp_serialize -> hlp_serialize__warn_once;
+hlp_serialize -> hlp_serialize__serialize_struct;
+hlp_serialize -> hlp_serialize__serialize_logical;
+hlp_serialize -> hlp_serialize__serialize_string;
+reduce_matches -> profile_log;
+estimate_fit_params -> sigmoid_fit;
+demo__calibrate_rho [label="demo>calibrate_rho"]
+demo__calibrate_rho -> get_codebooks;
+demo__calibrate_rho -> calc_windows;
+demo__calibrate_rho -> filter_features;
+demo__calibrate_rho -> profile_log;
+demo__calibrate_rho -> whiten_features;
+demo__calibrate_rho -> debg;
+demo__calibrate_rho -> get_features_from_stream;
+get_codebook_from_windows__get_cache_basedir [label="get_codebook_from_windows>get_cache_basedir"]
+VOCxml2struct__gettag [label="VOCxml2struct>gettag"]
+VOCxml2struct__gettag -> VOCxml2struct__findchar;
+hlp_serialize__serialize_cell [label="hlp_serialize>serialize_cell"]
+hlp_serialize__serialize_cell -> hlp_serialize__serialize_cell_typed;
+hlp_serialize__serialize_cell -> hlp_serialize__class2tag;
+hlp_serialize__serialize_cell -> hlp_serialize__serialize_cell_heterogenous;
+hlp_serialize__serialize_cell -> hlp_serialize__serialize_numeric_simple;
+hlp_serialize__serialize_cell -> hlp_serialize__serialize_numeric;
+hlp_serialize__serialize_cell -> hlp_serialize;
+hlp_serialize__serialize_cell -> hlp_serialize__serialize_logical;
+hlp_serialize__serialize_cell -> hlp_serialize__serialize_string;
+get_cluster__addfunctions [label="get_cluster>addfunctions"]
+get_cluster__addfunctions -> get_cluster__feature2codebookintegral;
+get_cluster__addfunctions -> get_cluster__feature2codebookintegral_naiive;
+get_cluster__addfunctions -> get_cluster__fisher_feature2codebook;
+get_cluster__addfunctions -> get_cluster__feature2codebook;
+get_cluster__addfunctions -> get_cluster__fisher_feature2codebookintegral_naiive;
+get_cluster__addfunctions -> get_cluster__fisher_feature2codebookintegral;
+extract_codebooks -> calc_windows;
+extract_codebooks -> calc_codebooks;
+filter_windows_by_inverse_search__get_all_match [label="filter_windows_by_inverse_search>get_all_match"]
+get_current_scales_by_size -> get_current_scales_by_index;
+get_current_scales_by_size -> is_in_scale;
+get_current_scales_by_size -> get_range_for_scale;
+get_cluster__fisher_feature2codebookintegral [label="get_cluster>fisher_feature2codebookintegral"]
+get_cluster__fisher_feature2codebookintegral -> get_current_scales_by_index;
+get_cluster__fisher_feature2codebookintegral -> succ;
+get_cluster__fisher_feature2codebookintegral -> info;
+get_cluster__fisher_feature2codebookintegral -> get_available_scales;
+get_cluster__fisher_feature2codebookintegral -> profile_log;
+get_cluster__fisher_feature2codebookintegral -> filter_feature_by_scale;
+get_cluster__fisher_feature2codebookintegral -> debg;
+get_cluster__fisher_feature2codebookintegral -> yael_fisher;
+demo -> demo__getImageDB;
+demo -> succ;
+demo -> info;
+demo -> generateCluster;
+demo -> merge_structs;
+demo -> demo__searchInteractive;
+demo -> get_codebooks;
+demo -> set_log_level;
+demo -> profile_stop;
+demo -> prepare_features;
+demo -> parse_keywords;
+demo -> log_file;
+hlp_deserialize__deserialize_handle [label="hlp_deserialize>deserialize_handle"]
+hlp_deserialize__deserialize_handle -> hlp_deserialize__deserialize_string;
+hlp_deserialize__deserialize_handle -> hlp_deserialize__deserialize_cell;
+hlp_deserialize__deserialize_handle -> hlp_deserialize__restore_function;
+hlp_deserialize__deserialize_handle -> hlp_deserialize__deserialize_struct;
+VOCreadrecxml -> VOCreadrecxml__xmlobjtopas;
+VOCreadrecxml -> VOCreadxml;
+convert_to_I -> convert_to_I;
+}
