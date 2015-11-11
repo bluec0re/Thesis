@@ -3,7 +3,7 @@ from scipy.io import loadmat
 from collections import namedtuple
 
 from .metrics import get_average_precision
-from .config import ESVM_IDS, ESVM_FILES, FILES, ESVM_PATH
+from .config import ESVM_IDS, ESVM_FILES, FILES, ESVM_PATH, ESVM_DATABASE, ESVM_START_INDEX
 from .utils import BoundingBox, Result, get_mean
 
 Baseline = namedtuple('Baseline', 'elapsed, extract, windows, average_precision, recall_threshold')
@@ -21,8 +21,8 @@ def get_baseline(img=None):
         img = [img]
 
     for i in img:
-        i = files.index(i) + 9
-        filename = ESVM_PATH / 'data' / 'imageFiles_database' / '{:03}'.format(i) / 'results' / \
+        i = files.index(i) + ESVM_START_INDEX
+        filename = ESVM_DATABASE / '{:03}'.format(i) / 'results' / \
             'exemplar_001' / 'all_detects_sort_highest_score_exempl.mat'
 
         if not filename.exists():

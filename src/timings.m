@@ -121,7 +121,7 @@ function extract_timings()
     types = {'sparse-kd', 'sparse-matlab', 'sparse-kd2', 'naiive', 'sparse-sum', 'sparse-overwrite'};
     clusters = {512, 1000};
     parts = {1, 4};
-    window_scalings = {5, 4, 3, 2, 1, 0};
+    window_scalings = {0, 5, 4, 3, 2, 1};
 
     combinations = cartproduct(window_scalings, parts, clusters, types);
     num_comb = length(combinations(:));
@@ -158,7 +158,7 @@ function extract_timings()
 
     function elapsed = extract(params, type, cluster, roi_size, database, parts)
         starttime = tic;
-        for i=1:10
+        for i=1:20
             [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, parts, svm_models);
         end
         elapsed = toc(starttime)/10;
