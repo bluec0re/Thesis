@@ -48,7 +48,7 @@ function model = get_cluster( params, features )
         model.codebookSize = size(model.means, 1) * size(model.means, 2);
     else
         model.centroids = yael_kmeans(features, params.clusters)';
-        model.codebookSize = size(centroids, 1);
+        model.codebookSize = size(model.centroids, 1);
     end
     sec = toc(tmp);
     succ('DONE in %f sec', sec);

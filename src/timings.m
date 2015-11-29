@@ -55,7 +55,8 @@ function loading_timings()
     end
 
     function [elapsed, filesize, memsize] = load_db(clusters, type)
-        filepath = sprintf('results/models/codebooks/integral/%s/%d--full-database-100-1.000-double-3-86x86.mat', type, clusters);
+        %filepath = sprintf('results/models/codebooks/integral/%s/%d--full-database-100-1.000-double-3-86x86.mat', type, clusters);
+        filepath = sprintf('results/models/codebooks/integral/%s/%d--full-database-100-1.000.mat', type, clusters);
         starttime = tic;
         for i=1:10
             tmp = load_ex(filepath);
@@ -112,7 +113,8 @@ end
 function extract_timings()
 % Measures only the time needed to extract codebooks based on the configuration
     params = get_default_configuration();
-    params.log_file = '/dev/null';
+    log_file('extract_timings.log');
+    log_level('debug');
     params.memory_cache = true;
     params.use_threading = false;
     params.query_from_integral = true;
@@ -153,15 +155,17 @@ function extract_timings()
 
         % Do the timing
         timings(ic) = extract(params, type, cluster, roi_size, database, part);
-        save_ex('results/timings/extract.mat', 'timings', 'combinations', 'num_windows', '-v6');
+        save_ex('results/timings/database/extract.mat', 'timings', 'combinations', 'num_windows', '-v6');
     end
 
     function elapsed = extract(params, type, cluster, roi_size, database, parts)
+        rounds = 20;
         starttime = tic;
         for i=1:20
+        for i=1:rounds
             [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, parts, svm_models);
         end
-        elapsed = toc(starttime)/10;
+        elapsed = toc(starttime)/rounds;
     end
 end
 
@@ -302,11 +306,12 @@ function complete(skip_comb, skip_scale, force)
     window_filtered = {true, false};
     scale_ranges = {3, 1};
     images = {'2008_004363', '2009_004882', '2010_005116', '2009_000634', '2010_003701'};
-    images = {'2008_004363', '2009_004882', '2010_003701'};
+    %images = {'2008_004363', '2009_004882', '2010_003701'};
+    %images = {'2009_000634', '2010_003701'};
     window_image_ratio = {1, 0.75};
-    %query_from_integral = {true, false};
+    query_from_integral = {true, false};
     %just for speed up, maybe not best performance
-    query_from_integral = {false};
+    %query_from_integral = {false};
     nonmax_min = {true, false};
     dbtypes = {'database2', 'database'};
     dbtypes = {'database2'};
