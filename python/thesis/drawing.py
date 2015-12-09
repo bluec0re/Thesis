@@ -69,6 +69,8 @@ def plot_versus(database, baselines, timings, precisions, windows):
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         fig.savefig(str(target_dir / "{}.png".format(combination)))
 
+        plt.close(fig)
+
 
 def show_image(ax, I, bbs=None):
     """

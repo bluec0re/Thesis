@@ -2,18 +2,20 @@ from pathlib import Path as P
 
 __all__ = (
     'ROOT', 'ESVM_PATH', 'RESULT_PATH', 'PASCAL_PATH', 'ANNOTATION_PATH',
-    'IMAGE_PATH', 'TIMING_PATH', 'PERFORMANCE_PATH', 'FILES', 'ESVM_FILES',
-    'ESVM_IDS'
+    'IMAGE_PATH', 'TIMING_PATH', 'PERFORMANCE_PATH', 'FILES', 'ESVM_FILES2',
+    'ESVM_IDS1', 'ESVM_FILES2',
+    'ESVM_IDS2'
+
 )
 
 # Project root
 ROOT = P(__file__).absolute().parent.parent.parent
 # Masatos ExemplarSVM project location
 ESVM_PATH = ROOT / '..' / 'masato' / 'timo2'
-# ESVM_DATABASE = ESVM_PATH / 'data' / 'imageFiles_database'
-# ESVM_START_INDEX = 9
-ESVM_DATABASE = ESVM_PATH / 'data' / 'imageFiles_database2'
-ESVM_START_INDEX = 1
+ESVM_DATABASE1 = ESVM_PATH / 'data' / 'imageFiles_database'
+ESVM_START_INDEX1 = 9
+ESVM_DATABASE2 = ESVM_PATH / 'data' / 'imageFiles_database2'
+ESVM_START_INDEX2 = 1
 # Detection results
 RESULT_PATH = ROOT / 'results'
 # PASCAL Image Database
@@ -29,7 +31,7 @@ PERFORMANCE_PATH = RESULT_PATH / 'performance'
 FILES = ('2008_004363', '2009_004882', '2010_005116', '2009_000634', '2010_003701')
 # Corresponding ESVM file numbers
 ESVM_FILES1 = (11, 30, 39, 21, 36)
-ESVM_FILES = (43, 137, 188, 100, 178)
+ESVM_FILES2 = (43, 137, 188, 100, 178)
 # Mapping
 ESVM_IDS1 = (
     '2007_008932',
@@ -84,7 +86,7 @@ ESVM_IDS1 = (
     '2011_004221'
 )
 
-ESVM_IDS = (
+ESVM_IDS2 = (
     '2007_008932',
     '2008_000133',
     '2008_000176',
