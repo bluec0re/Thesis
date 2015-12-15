@@ -506,7 +506,7 @@ function [results, num_windows] = searchDatabase(params, database, svm_models, f
                 ioscores = scores(image_only, :);
 
                 [iobbs, ioscores, idx] = reduce_matches(params, iobbs, ioscores);
-                info('Reduced %d patches to %d', length(image_only), size(iobbs, 1));
+                info('Reduced %4d patches to %d', length(image_only), size(iobbs, 1), true, true, false);
                 scores2 = [scores2; ioscores];
                 bbs2 = [bbs2; iobbs];
                 images2 = [images2, ones([1 size(iobbs, 1)]) * image];
@@ -923,7 +923,7 @@ function target_dir = get_target_dir(params, curid)
         sliding_window = 'v1';
     end
 
-    target_dir = [params.dataset.localdir filesep 'queries' filesep 'scaled'...
+    target_dir = [params.dataset.localdir filesep 'queries' filesep params.db_stream_name ...
                 filesep sliding_window '-Windows'...
                 filesep sprintf('%.1f', params.max_window_image_ratio) '-WinRatio'...
                 filesep filter '-Filter'...

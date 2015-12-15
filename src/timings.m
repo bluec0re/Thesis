@@ -303,8 +303,10 @@ function complete(skip_comb, skip_scale, force)
     clusters = {512, 1000};
     clusters = {512};
     parts = {1, 4};
+    parts = {1};
     window_filtered = {true, false};
     scale_ranges = {3, 1};
+    scale_ranges = {3};
     images = {'2008_004363', '2009_004882', '2010_005116', '2009_000634', '2010_003701'};
     %images = {'2008_004363', '2009_004882', '2010_003701'};
     %images = {'2009_000634', '2010_003701'};
@@ -313,8 +315,9 @@ function complete(skip_comb, skip_scale, force)
     %just for speed up, maybe not best performance
     %query_from_integral = {false};
     nonmax_min = {true, false};
-    dbtypes = {'database2', 'database'};
-    dbtypes = {'database2'};
+    dbtypes = {'database2', 'database', 'val'};
+    dbtypes = {'val'};
+%    dbtypes = {'database2'};
 
     combinations = cartproduct(images, clusters, parts, window_filtered, scale_ranges, window_image_ratio, query_from_integral, nonmax_min, dbtypes);
     num_comb = length(combinations(:));
@@ -362,15 +365,19 @@ function complete(skip_comb, skip_scale, force)
         caching = false;
         if strcmp(dbtype, 'database')
             stream_max = 100;
-            filename = sprintf('results/timings/total-%d-%d-%s-%d-%.2f-%s-%s-%s.mat',...
-                               clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid, nonmax);
+            %filename = sprintf('results/timings/total-%d-%d-%s-%d-%.2f-%s-%s-%s.mat',...
+            %                   clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid, nonmax);
         else
             rounds = 1;
             caching = true;
-            stream_max = 1000;
-            filename = sprintf('results/timings/%s/total-%d-%d-%s-%d-%.2f-%s-%s-%s.mat',...
-                               dbtype, clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid, nonmax);
+            if strcmp(dbtype, 'val')
+                stream_max = 2500;
+            else
+                stream_max = 1000;
+            end
         end
+        filename = sprintf('results/timings/%s/total-%d-%d-%s-%d-%.2f-%s-%s-%s.mat',...
+                           dbtype, clusters, parts, filtered, scale_range, window_image_ratio, query_source, fileid, nonmax);
 
         %window_scalings = {1, 2, 3, 4, 5, 0};
         % skip legacy window generation (value of 0)

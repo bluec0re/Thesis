@@ -142,7 +142,7 @@ function images = get_codebook_from_windows(params, features, cluster_model, roi
             codebooks2(~valid_codebooks, :) = [];
 
             if isempty(codebooks2)
-                err('No codebooks for %s?\n', filename);
+                err('No codebooks for %s?', filename);
                 continue;
                 %error('No codebooks for %s?\n', filename);
             end

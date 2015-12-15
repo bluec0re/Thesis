@@ -102,7 +102,7 @@ function [ bboxes, codebooks, images ] = calc_codebooks(params, database, window
         codebooks2(~valid_codebooks, :) = [];
 
         if isempty(codebooks2)
-            err('No codebooks for %s?\n', filename);
+            err('No codebooks for %s?', filename);
             continue;
             %error('No codebooks for %s?\n', filename);
         end
