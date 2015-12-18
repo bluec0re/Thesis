@@ -42,7 +42,14 @@ function loading_timings()
     timings = zeros([1 length(combinations(:))]);
     filesizes = zeros([1 length(combinations(:))]);
     memsizes = zeros([1 length(combinations(:))]);
+    if exist('results/timings/loading.mat', 'file')
+        load_ex('results/timings/loading.mat');
+    end
     for ic=1:length(combinations(:))
+        if memsizes(ic) ~= 0
+            info('Skipping %d: %d %f', ic, memsizes(ic), timings(ic));
+            continue
+        end
         combi = combinations{ic};
         cluster = combi{1};
         type = combi{2};
@@ -57,6 +64,13 @@ function loading_timings()
     function [elapsed, filesize, memsize] = load_db(clusters, type)
         %filepath = sprintf('results/models/codebooks/integral/%s/%d--full-database-100-1.000-double-3-86x86.mat', type, clusters);
         filepath = sprintf('results/models/codebooks/integral/%s/%d--full-database-100-1.000.mat', type, clusters);
+        if ~exist(filepath, 'file')
+            err('File %s missing', filepath);
+            elapsed = 0;
+            filesize = 0;
+            memsize = 0;
+            return;
+        end
         starttime = tic;
         for i=1:10
             tmp = load_ex(filepath);
@@ -119,20 +133,36 @@ function extract_timings()
     params.use_threading = false;
     params.query_from_integral = true;
 
+
     % build different configurations
     types = {'sparse-kd', 'sparse-matlab', 'sparse-kd2', 'naiive', 'sparse-sum', 'sparse-overwrite'};
     clusters = {512, 1000};
     parts = {1, 4};
     window_scalings = {0, 5, 4, 3, 2, 1};
+    window_scalings = {0};
 
     combinations = cartproduct(window_scalings, parts, clusters, types);
     num_comb = length(combinations(:));
     fprintf('Number combinations: %d\n', num_comb);
 
+    skip = false([1 num_comb]);
     timings = zeros([1 num_comb]);
     num_windows = zeros([1 num_comb]);
+    if exist('results/timings/database/extract.mat', 'file')
+        orig = load_ex('results/timings/database/extract.mat');
+        if length(orig.num_windows) == num_comb
+            skip = orig.num_windows ~= 0;
+            timings = orig.timings;
+            num_windows = orig.num_windows;
+        end
+    end
+
     for ic=1:num_comb
         debg('%2d/%02d', ic, num_comb);
+        if skip(ic)
+            info('Skipping: %f %f', num_windows(ic), timings(ic));
+            continue;
+        end
         combi = combinations{ic};
         scaling = combi{1};
         part = combi{2};
@@ -159,9 +189,8 @@ function extract_timings()
     end
 
     function elapsed = extract(params, type, cluster, roi_size, database, parts)
-        rounds = 20;
+        rounds = 5;
         starttime = tic;
-        for i=1:20
         for i=1:rounds
             [ bboxes, codebooks, images ] = calc_codebooks(params, database, windows, parts, svm_models);
         end
