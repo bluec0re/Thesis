@@ -4,8 +4,11 @@ import matplotlib.colors as colors
 from scipy.misc import imread
 import numpy as np
 from itertools import cycle
+import logging
 
 from .config import RESULT_PATH
+
+log = logging.getLogger(__name__)
 
 
 def get_cmap(N):
@@ -31,7 +34,7 @@ def plot_versus(database, baselines, timings, precisions, windows):
     if not target_dir.exists():
         target_dir.mkdir(parents=True)
 
-    print("#Combinations:", len(combinations))
+    log.debug("#Combinations: %d", len(combinations))
 
     for combination in combinations:
         esvmmarkers = cycle(('v', 'x', '+', 'o',))
@@ -62,14 +65,50 @@ def plot_versus(database, baselines, timings, precisions, windows):
             ax.plot(x, y, marker=next(markers), color=cmap(i), label=img)
 
         # Shrink current axis by 30%
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+        #box = ax.get_position()
+        #ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
 
         # Put a legend to the right of the current axis
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(str(target_dir / "{}.png".format(combination)))
+        lgd = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        savefig(fig, target_dir / "{}.png".format(combination), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         plt.close(fig)
+
+    img = 'ALL'
+    esvmmarkers = cycle(('v', 'x', '+', 'o',))
+    markers = cycle(('*', '|', 'D', 's'))
+    fig, ax = plt.subplots()
+    fig.suptitle(img)
+    fig.canvas.set_window_title(img)
+    ax.set_xlabel('Processing Times in Seconds')
+    ax.set_ylabel('Precision')
+    cmap = get_cmap(len(combinations))
+    for i, combination in enumerate(combinations):
+        # My
+        x = timings[combination][img]
+        if not x or max(x) > 300:
+            continue
+        x = sum(x) / len(x)
+        y = precisions[combination][img]
+        if not y:
+            continue
+        y = sum(y) / len(y)
+        ax.plot(x, y, marker=next(markers), color=cmap(i), label=combination)
+
+    # ESVM
+    bl = baselines[img]
+    x = bl.elapsed
+    y = bl.average_precision
+    ax.plot(x, y, marker=next(esvmmarkers), color=cmap(i), label="ESVM {}".format(img))
+    # Shrink current axis by 30%
+    #box = ax.get_position()
+    #ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+
+    # Put a legend to the right of the current axis
+    lgd = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    savefig(fig, target_dir / "{}.png".format(img), bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    plt.close(fig)
 
 
 def show_image(ax, I, bbs=None):
@@ -106,7 +145,7 @@ def plot(bl, x, y, label, filename, xlabel, ylabel, title=None):
     ax.legend(loc='lower right')
     if title:
         fig.suptitle(title)
-    fig.savefig(filename)
+    savefig(fig, filename)
     plt.close(fig)
 
 
@@ -124,5 +163,11 @@ def plot_dots(bl, x, y, label, filename, xlabel, ylabel, title=None):
     ax.legend(loc='lower right')
     if title:
         fig.suptitle(title)
-    fig.savefig(filename)
+    savefig(fig, filename)
     plt.close(fig)
+
+
+def savefig(fig, filename, *args, **kwargs):
+    filename = str(filename)
+    log.info("Saving %s", filename)
+    fig.savefig(filename, *args, **kwargs)

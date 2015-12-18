@@ -1,7 +1,11 @@
+import logging
 import numpy as np
 from sklearn.metrics import average_precision_score, auc
 
 from .pascal.groundtruth import GroundTruth, pascal_overlap
+
+
+log = logging.getLogger(__name__)
 
 
 def get_average_precision1(results):
@@ -43,12 +47,12 @@ def adjust_vectors(labels, scores, expected_len, gt):
     return labels, scores
 
     if labels.shape[0] > expected_len:
-        print("Removing last", labels.shape[0] - expected_len, "results")
+        log.debug("Removing last %d results", labels.shape[0] - expected_len)
         labels = labels[:expected_len]
         scores = scores[:expected_len]
 
     if labels.shape[0] < expected_len:
-        print("Adding", expected_len - labels.shape[0], "missing labels")
+        log.debug("Adding %d missing labels", expected_len - labels.shape[0])
 
     while labels.shape[0] < expected_len:
         for p in GroundTruth.positives:

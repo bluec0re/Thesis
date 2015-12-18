@@ -1,5 +1,6 @@
 from scipy.io import loadmat
 from collections import namedtuple
+import logging
 
 from .metrics import get_average_precision
 from .config import TIMING_PATH
@@ -7,6 +8,7 @@ from .utils import BoundingBox, Result
 
 
 MyLine = namedtuple('MyLine', 'elapsed, extract, windows, average_precision, win_type')
+log = logging.getLogger(__name__)
 
 
 def get_results(clusters, parts, filtered, scale_ranges, win_img_ratio, query_src,
@@ -25,6 +27,7 @@ def get_results(clusters, parts, filtered, scale_ranges, win_img_ratio, query_sr
                                                                      query_src,
                                                                      fileid,
                                                                      nonmax)
+    log.debug("Loading %s", filename)
     try:
         mat = loadmat(str(filename))
     except IOError:
@@ -40,7 +43,7 @@ def get_results(clusters, parts, filtered, scale_ranges, win_img_ratio, query_sr
     for win_type, (r, nw, elapsed_time1) in enumerate(zip(results, num_windows, elapsed_time)):
         nw = int(nw)
         # computation not finished
-        if nw == 0:
+        if nw == 0 or r.size == 0:
             continue
 
         # get results
